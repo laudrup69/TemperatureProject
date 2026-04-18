@@ -1,0 +1,261 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>GoveeMAUI</name>
+    </assembly>
+    <members>
+        <member name="M:GoveeMAUI.Services.MonitorService.SetPlugManuallyAsync(System.Boolean)">
+            <summary>
+            Permite encender o apagar el enchufe manualmente desde la UI,
+            independientemente del umbral de temperatura.
+            </summary>
+        </member>
+        <member name="T:GoveeMAUI.ViewModels.MainViewModel">
+            <inheritdoc/>
+            <inheritdoc/>
+            <inheritdoc/>
+            <inheritdoc/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.Temperature">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.MainViewModel._temperature"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.Humidity">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.MainViewModel._humidity"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.PlugOn">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.MainViewModel._plugOn"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.IsRunning">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.MainViewModel._isRunning"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.StatusText">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.MainViewModel._statusText"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.StatusColor">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.MainViewModel._statusColor"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.Log">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.MainViewModel._log"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.LastUpdate">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.MainViewModel._lastUpdate"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.Threshold">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.MainViewModel._threshold"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.ManualPlugButtonText">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.MainViewModel._manualPlugButtonText"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.ManualPlugButtonColor">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.MainViewModel._manualPlugButtonColor"/>
+        </member>
+        <member name="M:GoveeMAUI.ViewModels.MainViewModel.OnPlugOnChanged(System.Boolean)">
+            <summary>Executes the logic for when <see cref="P:GoveeMAUI.ViewModels.MainViewModel.PlugOn"/> just changed.</summary>
+            <param name="value">The new property value that was set.</param>
+            <remarks>This method is invoked right after the value of <see cref="P:GoveeMAUI.ViewModels.MainViewModel.PlugOn"/> is changed.</remarks>
+        </member>
+        <member name="F:GoveeMAUI.ViewModels.MainViewModel.toggleMonitorCommand">
+            <summary>The backing field for <see cref="P:GoveeMAUI.ViewModels.MainViewModel.ToggleMonitorCommand"/>.</summary>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.ToggleMonitorCommand">
+            <summary>Gets an <see cref="T:CommunityToolkit.Mvvm.Input.IAsyncRelayCommand"/> instance wrapping <see cref="M:GoveeMAUI.ViewModels.MainViewModel.ToggleMonitorAsync"/>.</summary>
+        </member>
+        <member name="F:GoveeMAUI.ViewModels.MainViewModel.saveThresholdCommand">
+            <summary>The backing field for <see cref="P:GoveeMAUI.ViewModels.MainViewModel.SaveThresholdCommand"/>.</summary>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.SaveThresholdCommand">
+            <summary>Gets an <see cref="T:CommunityToolkit.Mvvm.Input.IRelayCommand"/> instance wrapping <see cref="M:GoveeMAUI.ViewModels.MainViewModel.SaveThreshold"/>.</summary>
+        </member>
+        <member name="F:GoveeMAUI.ViewModels.MainViewModel.togglePlugManuallyCommand">
+            <summary>The backing field for <see cref="P:GoveeMAUI.ViewModels.MainViewModel.TogglePlugManuallyCommand"/>.</summary>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.MainViewModel.TogglePlugManuallyCommand">
+            <summary>Gets an <see cref="T:CommunityToolkit.Mvvm.Input.IAsyncRelayCommand"/> instance wrapping <see cref="M:GoveeMAUI.ViewModels.MainViewModel.TogglePlugManuallyAsync"/>.</summary>
+        </member>
+        <member name="T:GoveeMAUI.ViewModels.SettingsViewModel">
+            <inheritdoc/>
+            <inheritdoc/>
+            <inheritdoc/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.GoveeApiKey">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.SettingsViewModel._goveeApiKey"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.GoveeDeviceId">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.SettingsViewModel._goveeDeviceId"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.GoveeModel">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.SettingsViewModel._goveeModel"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.MerossEmail">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.SettingsViewModel._merossEmail"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.MerossPassword">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.SettingsViewModel._merossPassword"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.MerossDevice">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.SettingsViewModel._merossDevice"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.Threshold">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.SettingsViewModel._threshold"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.IntervalSeconds">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.SettingsViewModel._intervalSeconds"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.StatusMessage">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.SettingsViewModel._statusMessage"/>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.DeviceList">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.SettingsViewModel._deviceList"/>
+        </member>
+        <member name="F:GoveeMAUI.ViewModels.SettingsViewModel.saveCommand">
+            <summary>The backing field for <see cref="P:GoveeMAUI.ViewModels.SettingsViewModel.SaveCommand"/>.</summary>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.SaveCommand">
+            <summary>Gets an <see cref="T:CommunityToolkit.Mvvm.Input.IRelayCommand"/> instance wrapping <see cref="M:GoveeMAUI.ViewModels.SettingsViewModel.Save"/>.</summary>
+        </member>
+        <member name="F:GoveeMAUI.ViewModels.SettingsViewModel.detectGoveeDevicesCommand">
+            <summary>The backing field for <see cref="P:GoveeMAUI.ViewModels.SettingsViewModel.DetectGoveeDevicesCommand"/>.</summary>
+        </member>
+        <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.DetectGoveeDevicesCommand">
+            <summary>Gets an <see cref="T:CommunityToolkit.Mvvm.Input.IAsyncRelayCommand"/> instance wrapping <see cref="M:GoveeMAUI.ViewModels.SettingsViewModel.DetectGoveeDevicesAsync"/>.</summary>
+        </member>
+        <member name="T:GoveeMAUI.Resource">
+            <summary>
+            Android Resource Designer class.
+            Exposes the Android Resource designer assembly into the project Namespace.
+            </summary>
+        </member>
+        <member name="T:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs">
+            <summary>
+            A helper type providing cached, reusable <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instances
+            for all properties generated with <see cref="T:CommunityToolkit.Mvvm.ComponentModel.ObservablePropertyAttribute"/>.
+            </summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.Temperature">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "Temperature" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.Humidity">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "Humidity" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.PlugOn">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "PlugOn" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.IsRunning">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "IsRunning" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.StatusText">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "StatusText" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.StatusColor">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "StatusColor" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.Log">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "Log" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.LastUpdate">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "LastUpdate" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.Threshold">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "Threshold" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.ManualPlugButtonText">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "ManualPlugButtonText" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.ManualPlugButtonColor">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "ManualPlugButtonColor" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.GoveeApiKey">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "GoveeApiKey" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.GoveeDeviceId">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "GoveeDeviceId" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.GoveeModel">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "GoveeModel" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.MerossEmail">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "MerossEmail" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.MerossPassword">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "MerossPassword" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.MerossDevice">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "MerossDevice" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.IntervalSeconds">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "IntervalSeconds" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.StatusMessage">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "StatusMessage" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.DeviceList">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "DeviceList" generated properties.</summary>
+        </member>
+        <member name="T:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs">
+            <summary>
+            A helper type providing cached, reusable <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instances
+            for all properties generated with <see cref="T:CommunityToolkit.Mvvm.ComponentModel.ObservablePropertyAttribute"/>.
+            </summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.Temperature">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "Temperature" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.Humidity">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "Humidity" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.PlugOn">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "PlugOn" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.IsRunning">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "IsRunning" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.StatusText">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "StatusText" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.StatusColor">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "StatusColor" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.Log">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "Log" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.LastUpdate">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "LastUpdate" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.Threshold">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "Threshold" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.ManualPlugButtonText">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "ManualPlugButtonText" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.ManualPlugButtonColor">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "ManualPlugButtonColor" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.GoveeApiKey">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "GoveeApiKey" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.GoveeDeviceId">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "GoveeDeviceId" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.GoveeModel">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "GoveeModel" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.MerossEmail">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "MerossEmail" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.MerossPassword">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "MerossPassword" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.MerossDevice">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "MerossDevice" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.IntervalSeconds">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "IntervalSeconds" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.StatusMessage">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "StatusMessage" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.DeviceList">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "DeviceList" generated properties.</summary>
+        </member>
+    </members>
+</doc>

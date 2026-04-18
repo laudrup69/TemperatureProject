@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GoveeMAUI.ViewModels"
+             x:Class="GoveeMAUI.Views.SettingsPage"
+             x:DataType="vm:SettingsViewModel"
+             Title="⚙️ Ajustes"
+             BackgroundColor="#1E1E2E">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <!-- Contenido con scroll -->
+        <ScrollView Grid.Row="0" VerticalScrollBarVisibility="Always">
+            <VerticalStackLayout Padding="16,16,16,8" Spacing="14">
+
+                <!-- Govee -->
+                <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="🌡️  GOVEE" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5" />
+
+                        <Label Text="API Key" TextColor="#9999BB" FontSize="13" />
+                        <Entry Text="{Binding GoveeApiKey}"
+                               Placeholder="Pega aquí tu API Key de Govee"
+                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+
+                        <Button Text="🔍  Detectar dispositivos automáticamente"
+                                Command="{Binding DetectGoveeDevicesCommand}"
+                                BackgroundColor="#5A4FD6" TextColor="White"
+                                CornerRadius="12" FontSize="15" FontAttributes="Bold" HeightRequest="52" />
+
+                        <Label Text="{Binding DeviceList}" TextColor="#F7C26A" FontSize="12" />
+
+                        <Label Text="Device ID (autodetectado)" TextColor="#9999BB" FontSize="13" />
+                        <Entry Text="{Binding GoveeDeviceId}" Placeholder="Se rellena al detectar"
+                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+
+                        <Label Text="Modelo (autodetectado)" TextColor="#9999BB" FontSize="13" />
+                        <Entry Text="{Binding GoveeModel}" Placeholder="Se rellena al detectar"
+                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Meross -->
+                <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="🔌  MEROSS" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5" />
+
+                        <Label Text="Email de la cuenta Meross" TextColor="#9999BB" FontSize="13" />
+                        <Entry Text="{Binding MerossEmail}" Placeholder="usuario@email.com"
+                               Keyboard="Email"
+                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+
+                        <Label Text="Contraseña" TextColor="#9999BB" FontSize="13" />
+                        <Entry Text="{Binding MerossPassword}" IsPassword="True"
+                               Placeholder="Contraseña de la app Meross"
+                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+
+                        <Label Text="Nombre del enchufe (opcional)" TextColor="#9999BB" FontSize="13" />
+                        <Entry Text="{Binding MerossDevice}"
+                               Placeholder="Vacío = usa el primer enchufe de la cuenta"
+                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Parámetros -->
+                <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="⚙️  PARÁMETROS" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5" />
+
+                        <Label Text="Umbral de temperatura (°C)" TextColor="#9999BB" FontSize="13" />
+                        <Entry Text="{Binding Threshold}" Keyboard="Numeric"
+                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+
+                        <Label Text="Intervalo de comprobación (segundos)" TextColor="#9999BB" FontSize="13" />
+                        <Entry Text="{Binding IntervalSeconds}" Keyboard="Numeric"
+                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <Label Text="{Binding StatusMessage}"
+                       TextColor="#F7C26A" HorizontalOptions="Center" FontSize="14" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Botón guardar fijo abajo -->
+        <Button Grid.Row="1"
+                Text="💾  Guardar ajustes"
+                Command="{Binding SaveCommand}"
+                BackgroundColor="#7C6AF7" TextColor="White"
+                CornerRadius="0" FontSize="16" FontAttributes="Bold"
+                HeightRequest="56" Margin="0" />
+
+    </Grid>
+
+</ContentPage>

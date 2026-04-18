@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GoveeMAUI.ViewModels"
+             x:Class="GoveeMAUI.Views.MainPage"
+             x:DataType="vm:MainViewModel"
+             Title="🌡️ Govee Temp Control"
+             BackgroundColor="#1E1E2E">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="⚙️ Ajustes" Clicked="OnSettingsClicked" />
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="14">
+
+            <!-- Estado -->
+            <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
+                <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                    <Ellipse WidthRequest="12" HeightRequest="12" VerticalOptions="Center"
+                             Fill="{Binding StatusColor}" />
+                    <Label Text="{Binding StatusText}"
+                           TextColor="{Binding StatusColor}"
+                           FontSize="15" FontAttributes="Bold" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </Frame>
+
+            <!-- Temperatura -->
+            <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
+                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                    <Label Text="TEMPERATURA" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5"
+                           HorizontalOptions="Center" />
+                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="2">
+                        <Label Text="{Binding Temperature}"
+                               TextColor="White" FontSize="56" FontAttributes="Bold" />
+                        <Label Text="°C" FontSize="26" FontAttributes="Bold" TextColor="#9999BB"
+                               VerticalOptions="End" Margin="0,0,0,10" />
+                    </HorizontalStackLayout>
+                    <Label Text="{Binding LastUpdate}" TextColor="#9999BB" FontSize="12"
+                           HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Humedad -->
+            <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
+                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                    <Label Text="HUMEDAD" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5"
+                           HorizontalOptions="Center" />
+                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="2">
+                        <Label Text="{Binding Humidity}"
+                               TextColor="White" FontSize="42" FontAttributes="Bold" />
+                        <Label Text="%" FontSize="22" TextColor="#9999BB"
+                               VerticalOptions="End" Margin="0,0,0,6" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Enchufe -->
+            <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
+                <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                    <Label Text="ENCHUFE MEROSS" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5"
+                           HorizontalOptions="Center" />
+                    <Label FontSize="22" FontAttributes="Bold" HorizontalOptions="Center">
+                        <Label.Triggers>
+                            <DataTrigger TargetType="Label" Binding="{Binding PlugOn}" Value="True">
+                                <Setter Property="Text"      Value="🟢  ENCENDIDO" />
+                                <Setter Property="TextColor" Value="#4CAF50" />
+                            </DataTrigger>
+                            <DataTrigger TargetType="Label" Binding="{Binding PlugOn}" Value="False">
+                                <Setter Property="Text"      Value="⭕  APAGADO" />
+                                <Setter Property="TextColor" Value="#9999BB" />
+                            </DataTrigger>
+                        </Label.Triggers>
+                    </Label>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Umbral -->
+            <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="UMBRAL DE TEMPERATURA" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5" />
+                    <HorizontalStackLayout Spacing="10">
+                        <Entry Text="{Binding Threshold}" Keyboard="Numeric"
+                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E"
+                               HorizontalOptions="FillAndExpand" />
+                        <Label Text="°C" TextColor="#9999BB" VerticalOptions="Center" FontSize="18" />
+                        <Button Text="💾" Command="{Binding SaveThresholdCommand}"
+                                BackgroundColor="#5A4FD6" TextColor="White"
+                                CornerRadius="10" WidthRequest="50" HeightRequest="44" />
+                    </HorizontalStackLayout>
+                    <Label Text="El enchufe se enciende cuando la temperatura baja de este valor."
+                           TextColor="#9999BB" FontSize="12" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Botón control manual del enchufe -->
+            <Button Command="{Binding TogglePlugManuallyCommand}"
+                Text="{Binding ManualPlugButtonText}"
+                TextColor="White"
+                CornerRadius="12"
+                FontSize="15"
+                FontAttributes="Bold"
+                HeightRequest="52"
+                BackgroundColor="{Binding ManualPlugButtonColor}"
+                IsEnabled="{Binding IsRunning}" />
+
+            <!-- Botón arrancar/parar -->
+            <Button Command="{Binding ToggleMonitorCommand}"
+                    TextColor="White" CornerRadius="12" FontSize="16"
+                    FontAttributes="Bold" HeightRequest="52">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsRunning}" Value="True">
+                        <Setter Property="Text"            Value="⏹️  Detener monitorización" />
+                        <Setter Property="BackgroundColor" Value="#F44336" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsRunning}" Value="False">
+                        <Setter Property="Text"            Value="▶️  Iniciar monitorización" />
+                        <Setter Property="BackgroundColor" Value="#7C6AF7" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+
+            <!-- Log -->
+            <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="REGISTRO DE EVENTOS" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5" />
+                    <Label Text="{Binding Log}" TextColor="#9999BB" FontSize="12" LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
