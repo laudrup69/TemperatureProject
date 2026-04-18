@@ -416,7 +416,7 @@ target triple = "aarch64-unknown-linux-android21"
 		ptr @__compressedAssemblyData_78; uint8_t* data
 	}, ; 78: Xamarin.KotlinX.Serialization.Core.Jvm
 	%struct.CompressedAssemblyDescriptor {
-		i32 111104, ; uint32_t uncompressed_file_size
+		i32 117760, ; uint32_t uncompressed_file_size
 		i1 false, ; bool loaded
 		ptr @__compressedAssemblyData_79; uint8_t* data
 	}, ; 79: GoveeMAUI
@@ -746,7 +746,7 @@ target triple = "aarch64-unknown-linux-android21"
 @__compressedAssemblyData_76 = internal dso_local global [85504 x i8] zeroinitializer, align 1
 @__compressedAssemblyData_77 = internal dso_local global [17408 x i8] zeroinitializer, align 1
 @__compressedAssemblyData_78 = internal dso_local global [88576 x i8] zeroinitializer, align 1
-@__compressedAssemblyData_79 = internal dso_local global [111104 x i8] zeroinitializer, align 1
+@__compressedAssemblyData_79 = internal dso_local global [117760 x i8] zeroinitializer, align 1
 @__compressedAssemblyData_80 = internal dso_local global [27136 x i8] zeroinitializer, align 1
 @__compressedAssemblyData_81 = internal dso_local global [14848 x i8] zeroinitializer, align 1
 @__compressedAssemblyData_82 = internal dso_local global [10240 x i8] zeroinitializer, align 1

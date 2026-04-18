@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GoveeMAUI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+d32754d490c73c890b7eb47223728d4b56483376")]
 [assembly: System.Reflection.AssemblyProductAttribute("GoveeMAUI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GoveeMAUI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

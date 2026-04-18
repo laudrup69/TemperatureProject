@@ -1,4 +1,40 @@
+# Build artifacts
+obj/
+bin/
+*.dll
+*.exe
+*.so
+
+# User-specific files
+*.user
+*.userprefs
+.vs/
+.vscode/
+
+# Build results
+Debug/
+Release/
+
+# IDE settings
+.idea/
+.rider/
+*.sln.iml
+
+# Project archives
 /GoveeMAUI9.zip
 /GoveeMAUI9_v6.zip
 /GoveeMAUI_net9_v7.zip
+
+# Directories
 /Mobil
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+*.snupkg
+
+# Local environment
+*.local.json
