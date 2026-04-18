@@ -1471,3 +1471,4 @@ C:\TemperatureProject\GoveeMAUI9\obj\Debug\net9.0-android\stamp\_ConvertResource
 C:\TemperatureProject\GoveeMAUI9\obj\Debug\net9.0-android\stamp\_GenerateJavaStubs.stamp
 C:\TemperatureProject\GoveeMAUI9\obj\Debug\net9.0-android\stamp\_GeneratePackageManagerJava.stamp
 C:\TemperatureProject\GoveeMAUI9\obj\Debug\net9.0-android\stamp\_ResolveLibraryProjectImports.stamp
+C:\TemperatureProject\GoveeMAUI9\obj\Debug\net9.0-android\GoveeMAUI.sourcelink.json

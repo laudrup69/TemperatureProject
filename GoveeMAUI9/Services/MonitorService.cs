@@ -9,6 +9,8 @@ public class MonitorService
 
     private CancellationTokenSource? _cts;
     private bool _plugOn = false;
+    private int _consecutiveErrors = 0;
+    private const int MaxConsecutiveErrors = 5;
 
     public bool IsRunning { get; private set; }
 
@@ -45,6 +47,7 @@ public class MonitorService
 
         _cts = new CancellationTokenSource();
         IsRunning = true;
+        _consecutiveErrors = 0;
 
         _ = RunLoopAsync(_cts.Token);
     }
@@ -95,6 +98,7 @@ public class MonitorService
             {
                 OnError?.Invoke($"Error buscando sensor Govee: {ex.Message}");
                 IsRunning = false;
+                // Aquí NO retornamos inmediatamente; MainViewModel puede reintentar automáticamente
                 return;
             }
         }
@@ -104,6 +108,7 @@ public class MonitorService
         }
 
         OnLogMessage?.Invoke("🔄 Iniciando lecturas...");
+        _consecutiveErrors = 0;
 
         var intervalSecs = Preferences.Get(SettingsKeys.Interval, 60);
 
@@ -134,6 +139,9 @@ public class MonitorService
         {
             var reading = await _govee.GetDeviceStateAsync(deviceId, model);
             var threshold = Preferences.Get(SettingsKeys.Threshold, 18.0);
+
+            // Reset contador de errores en lectura exitosa
+            _consecutiveErrors = 0;
 
             // 1. FILTRO DE LECTURAS BASURA
             // Si el sensor devuelve exactamente 0, valores absurdos o no es válido
@@ -172,7 +180,14 @@ public class MonitorService
         }
         catch (Exception ex)
         {
-            OnError?.Invoke($"Error leyendo sensor: {ex.Message}");
+            _consecutiveErrors++;
+            OnLogMessage?.Invoke($"❌ Error leyendo sensor (intento fallido #{_consecutiveErrors}): {ex.Message}");
+            
+            if (_consecutiveErrors >= MaxConsecutiveErrors)
+            {
+                OnError?.Invoke($"Demasiados errores consecutivos ({_consecutiveErrors}). Deteniendo monitorización.");
+                IsRunning = false;
+            }
         }
     }
 

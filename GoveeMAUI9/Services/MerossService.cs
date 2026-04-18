@@ -13,9 +13,11 @@ public class MerossService : IAsyncDisposable
     private const string MqttBroker = "mqtt.meross.com";
     private const int MqttPort = 2001;
     private const string Secret = "23x17ahWarFH6w29";
+    private const int MaxMqttReconnectAttempts = 10;
 
     private readonly HttpClient _http;
     private IMqttClient? _mqttClient;
+    private int _mqttReconnectAttempts = 0;
 
     private string _userId = "";
     private string _key = "";
@@ -164,15 +166,27 @@ public class MerossService : IAsyncDisposable
         _mqttClient.DisconnectedAsync += async e =>
         {
             Log($"⚠️ MQTT desconectado: Reason={e.Reason} Exception={e.Exception?.Message}");
-            await Task.Delay(3000);
-            try
+            
+            // Implementar reconexión con backoff exponencial
+            if (_mqttReconnectAttempts < MaxMqttReconnectAttempts)
             {
-                Log("🔄 Reconectando MQTT...");
-                await ConnectMqttAsync();
+                _mqttReconnectAttempts++;
+                var delayMs = 3000 * (int)Math.Pow(2, Math.Min(_mqttReconnectAttempts - 1, 3)); // Max backoff: 3s * 2^3 = 24s
+                Log($"🔄 Reconectando MQTT (intento {_mqttReconnectAttempts}/{MaxMqttReconnectAttempts}) en {delayMs}ms...");
+                
+                await Task.Delay(delayMs);
+                try
+                {
+                    await ConnectMqttAsync();
+                }
+                catch (Exception ex)
+                {
+                    Log($"❌ Reconexión MQTT fallida (intento {_mqttReconnectAttempts}): {ex.Message}");
+                }
             }
-            catch (Exception ex)
+            else
             {
-                Log($"❌ Reconexión fallida: {ex.Message}");
+                Log($"❌ MQTT: Máximo de reconexiones alcanzado ({MaxMqttReconnectAttempts}). Requiere intervención manual.");
             }
         };
 
@@ -192,6 +206,9 @@ public class MerossService : IAsyncDisposable
 
         var connectResult = await _mqttClient.ConnectAsync(options);
         Log($"✅ MQTT conectado. CONNACK={connectResult.ResultCode}");
+        
+        // Reset de intentos al conectar exitosamente
+        _mqttReconnectAttempts = 0;
 
         // Suscribirse a topic de respuestas de la app
         var appTopic = $"/app/{_userId}-{_appId}/subscribe";
@@ -249,49 +266,62 @@ public class MerossService : IAsyncDisposable
 
     private async Task<bool> TryLocalHttpAsync(bool turnOn)
     {
-        try
+        // Intentar 2 veces con timeout
+        for (int attempt = 0; attempt < 2; attempt++)
         {
-            var msgId = Guid.NewGuid().ToString("N");
-            var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-            var envelope = new
+            try
             {
-                header = new
+                var msgId = Guid.NewGuid().ToString("N");
+                var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+                var envelope = new
                 {
-                    messageId = msgId,
-                    method = "SET",
-                    from = $"http://{_deviceInnerIp}/config",
-                    @namespace = "Appliance.Control.ToggleX",
-                    payloadVersion = 1,
-                    sign = Md5(msgId + _key + ts),
-                    timestamp = ts,
-                    triggerSrc = "app",
-                    uuid = _deviceUUID
-                },
-                payload = new
+                    header = new
+                    {
+                        messageId = msgId,
+                        method = "SET",
+                        from = $"http://{_deviceInnerIp}/config",
+                        @namespace = "Appliance.Control.ToggleX",
+                        payloadVersion = 1,
+                        sign = Md5(msgId + _key + ts),
+                        timestamp = ts,
+                        triggerSrc = "app",
+                        uuid = _deviceUUID
+                    },
+                    payload = new
+                    {
+                        togglex = new { channel = 0, onoff = turnOn ? 1 : 0 }
+                    }
+                };
+
+                var json = JsonSerializer.Serialize(envelope);
+                var url = $"http://{_deviceInnerIp}/config";
+                Log($"   POST {url} (intento {attempt + 1}/2)");
+
+                using var localHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var resp = await localHttp.PostAsync(url, content);
+                var respBody = await resp.Content.ReadAsStringAsync();
+
+                Log($"   HTTP local response ({(int)resp.StatusCode}): {respBody}");
+                if (resp.IsSuccessStatusCode)
+                    return true;
+                    
+                if (attempt < 1)
                 {
-                    togglex = new { channel = 0, onoff = turnOn ? 1 : 0 }
+                    Log($"   ⚠️ HTTP local falló, reintentando...");
+                    await Task.Delay(1000);
                 }
-            };
-
-            var json = JsonSerializer.Serialize(envelope);
-            var url = $"http://{_deviceInnerIp}/config";
-            Log($"   POST {url}");
-            Log($"   Body: {json}");
-
-            using var localHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var resp = await localHttp.PostAsync(url, content);
-            var respBody = await resp.Content.ReadAsStringAsync();
-
-            Log($"   HTTP local response ({(int)resp.StatusCode}): {respBody}");
-            return resp.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Log($"   HTTP local excepción (intento {attempt + 1}): {ex.Message}");
+                if (attempt < 1)
+                    await Task.Delay(1000);
+            }
         }
-        catch (Exception ex)
-        {
-            Log($"   HTTP local excepción: {ex.Message}");
-            return false;
-        }
+        
+        return false;
     }
 
     // ── MQTT Cloud ────────────────────────────────────────────────────────────
@@ -300,8 +330,16 @@ public class MerossService : IAsyncDisposable
     {
         if (_mqttClient == null || !_mqttClient.IsConnected)
         {
-            Log("⚠️ MQTT desconectado. Reconectando...");
-            await ConnectMqttAsync();
+            Log("⚠️ MQTT desconectado. Intentando reconectar...");
+            try
+            {
+                await ConnectMqttAsync();
+            }
+            catch (Exception ex)
+            {
+                Log($"❌ Fallo al reconectar MQTT: {ex.Message}");
+                throw;
+            }
         }
 
         var msgId = Guid.NewGuid().ToString("N");
@@ -331,7 +369,7 @@ public class MerossService : IAsyncDisposable
         var topic = $"/appliance/{_deviceUUID}/subscribe";
 
         Log($"📤 MQTT → {topic}");
-        Log($"   {json}");
+        Log($"   Comando: {(turnOn ? "ENCENDER" : "APAGAR")}");
 
         var msg = new MqttApplicationMessageBuilder()
             .WithTopic(topic)
@@ -340,7 +378,7 @@ public class MerossService : IAsyncDisposable
             .Build();
 
         var pubResult = await _mqttClient!.PublishAsync(msg);
-        Log($"   MQTT Publish PUBACK: {pubResult.ReasonCode}");
+        Log($"   ✅ MQTT Publish enviado.");
 
         // Esperar respuesta del dispositivo
         await Task.Delay(3000);

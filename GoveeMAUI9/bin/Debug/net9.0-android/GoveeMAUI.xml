@@ -4,6 +4,11 @@
         <name>GoveeMAUI</name>
     </assembly>
     <members>
+        <member name="M:GoveeMAUI.Services.GoveeService.RetryAsync``1(System.Func{System.Threading.Tasks.Task{``0}},System.String)">
+            <summary>
+            Ejecuta una operación con reintentos exponenciales.
+            </summary>
+        </member>
         <member name="M:GoveeMAUI.Services.MonitorService.SetPlugManuallyAsync(System.Boolean)">
             <summary>
             Permite encender o apagar el enchufe manualmente desde la UI,
