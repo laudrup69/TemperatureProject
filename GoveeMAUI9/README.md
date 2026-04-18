@@ -3,7 +3,7 @@
 App multiplataforma C# (.NET 9 MAUI) que monitoriza la temperatura con un
 sensor Govee y activa/desactiva automaticamente un enchufe WiFi Meross.
 
-Funciona en: Android y Windows — mismo codigo, misma app.
+Funciona en: Android y Windows — mismo codigo, misma app
 
 ---
 
