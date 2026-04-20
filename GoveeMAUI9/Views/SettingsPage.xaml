@@ -55,6 +55,11 @@
                                Placeholder="Contraseña de la app Meross"
                                TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
 
+                        <Label Text="Secret de API (opcional)" TextColor="#9999BB" FontSize="13" />
+                        <Entry Text="{Binding MerossSecret}"
+                               Placeholder="Vacío = usa valor por defecto"
+                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+
                         <Label Text="Nombre del enchufe (opcional)" TextColor="#9999BB" FontSize="13" />
                         <Entry Text="{Binding MerossDevice}"
                                Placeholder="Vacío = usa el primer enchufe de la cuenta"

@@ -12,7 +12,7 @@ public class MerossService : IAsyncDisposable
     private const string CloudBaseUrl = "https://iotx-eu.meross.com";
     private const string MqttBroker = "mqtt.meross.com";
     private const int MqttPort = 2001;
-    private const string Secret = "23x17ahWarFH6w29";
+    private const string DefaultSecret = "23x17ahWarFH6w29";  // Fallback por compatibilidad
     private const int MaxMqttReconnectAttempts = 10;
 
     private readonly HttpClient _http;
@@ -70,7 +70,8 @@ public class MerossService : IAsyncDisposable
         var nonce = GenerateNonce();
         var paramsJson = JsonSerializer.Serialize(new { email, password });
         var params64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(paramsJson));
-        var sign = Md5(Secret + timestamp + nonce + params64);
+        var secret = Preferences.Get(SettingsKeys.MerossSecret, DefaultSecret);
+        var sign = Md5(secret + timestamp + nonce + params64);
 
         var formData = new Dictionary<string, string>
         {
@@ -108,7 +109,8 @@ public class MerossService : IAsyncDisposable
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var nonce = GenerateNonce();
         var params64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("{}"));
-        var sign = Md5(Secret + timestamp + nonce + params64);
+        var secret = Preferences.Get(SettingsKeys.MerossSecret, DefaultSecret);
+        var sign = Md5(secret + timestamp + nonce + params64);
 
         var formData = new Dictionary<string, string>
         {
