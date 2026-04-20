@@ -97,6 +97,9 @@
         <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.MerossPassword">
             <inheritdoc cref="F:GoveeMAUI.ViewModels.SettingsViewModel._merossPassword"/>
         </member>
+        <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.MerossSecret">
+            <inheritdoc cref="F:GoveeMAUI.ViewModels.SettingsViewModel._merossSecret"/>
+        </member>
         <member name="P:GoveeMAUI.ViewModels.SettingsViewModel.MerossDevice">
             <inheritdoc cref="F:GoveeMAUI.ViewModels.SettingsViewModel._merossDevice"/>
         </member>
@@ -184,6 +187,9 @@
         <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.MerossPassword">
             <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "MerossPassword" generated properties.</summary>
         </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.MerossSecret">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "MerossSecret" generated properties.</summary>
+        </member>
         <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangingArgs.MerossDevice">
             <summary>The cached <see cref="T:System.ComponentModel.PropertyChangingEventArgs"/> instance for all "MerossDevice" generated properties.</summary>
         </member>
@@ -249,6 +255,9 @@
         </member>
         <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.MerossPassword">
             <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "MerossPassword" generated properties.</summary>
+        </member>
+        <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.MerossSecret">
+            <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "MerossSecret" generated properties.</summary>
         </member>
         <member name="F:CommunityToolkit.Mvvm.ComponentModel.__Internals.__KnownINotifyPropertyChangedArgs.MerossDevice">
             <summary>The cached <see cref="T:System.ComponentModel.PropertyChangedEventArgs"/> instance for all "MerossDevice" generated properties.</summary>

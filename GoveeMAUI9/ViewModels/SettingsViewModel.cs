@@ -14,6 +14,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _goveeModel      = "";
     [ObservableProperty] private string _merossEmail     = "";
     [ObservableProperty] private string _merossPassword  = "";
+    [ObservableProperty] private string _merossSecret    = "";
     [ObservableProperty] private string _merossDevice    = "";
     [ObservableProperty] private double _threshold       = 18.0;
     [ObservableProperty] private int    _intervalSeconds = 60;
@@ -33,6 +34,7 @@ public partial class SettingsViewModel : ObservableObject
         GoveeModel      = Preferences.Get(SettingsKeys.GoveeModel,     "");
         MerossEmail     = Preferences.Get(SettingsKeys.MerossEmail,    "");
         MerossPassword  = Preferences.Get(SettingsKeys.MerossPassword, "");
+        MerossSecret    = Preferences.Get(SettingsKeys.MerossSecret,   "");
         MerossDevice    = Preferences.Get(SettingsKeys.MerossDevice,   "");
         Threshold       = Preferences.Get(SettingsKeys.Threshold,      18.0);
         IntervalSeconds = Preferences.Get(SettingsKeys.Interval,       60);
@@ -45,6 +47,7 @@ public partial class SettingsViewModel : ObservableObject
         Preferences.Set(SettingsKeys.GoveeDeviceId,  GoveeDeviceId);
         Preferences.Set(SettingsKeys.GoveeModel,     GoveeModel);
         Preferences.Set(SettingsKeys.MerossEmail,    MerossEmail);
+        Preferences.Set(SettingsKeys.MerossSecret,   MerossSecret);
         Preferences.Set(SettingsKeys.MerossPassword, MerossPassword);
         Preferences.Set(SettingsKeys.MerossDevice,   MerossDevice);
         Preferences.Set(SettingsKeys.Threshold,      Threshold);

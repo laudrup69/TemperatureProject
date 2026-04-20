@@ -12,6 +12,7 @@ public static class SettingsKeys
     public const string GoveeModel = "govee_model";
     public const string MerossEmail = "meross_email";
     public const string MerossPassword = "meross_password";
+    public const string MerossSecret = "meross_secret";
     public const string MerossDevice = "meross_device";
     public const string Threshold = "threshold";
     public const string Interval = "interval_seconds";
