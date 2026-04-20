@@ -15,7 +15,7 @@ public class MerossService : IAsyncDisposable
     private const string DefaultSecret = "23x17ahWarFH6w29";  // Fallback por compatibilidad
     private const int MaxMqttReconnectAttempts = 10;
 
-    private readonly HttpClient _http;
+    private readonly IHttpClientFactory _httpClientFactory;
     private IMqttClient? _mqttClient;
     private int _mqttReconnectAttempts = 0;
 
@@ -30,13 +30,9 @@ public class MerossService : IAsyncDisposable
     public bool IsConnected => _mqttClient?.IsConnected == true;
     public event Action<string>? OnLog;
 
-    public MerossService()
+    public MerossService(IHttpClientFactory httpClientFactory)
     {
-        _http = new HttpClient { BaseAddress = new Uri(CloudBaseUrl) };
-        _http.DefaultRequestHeaders.Add("vender", "Meross");
-        _http.DefaultRequestHeaders.Add("AppVersion", "1.9.0");
-        _http.DefaultRequestHeaders.Add("AppLanguage", "en");
-        _http.DefaultRequestHeaders.Add("User-Agent", "okhttp/3.6.0");
+        _httpClientFactory = httpClientFactory;
     }
 
     // ── Inicialización ───────────────────────────────────────────────────────
@@ -81,7 +77,8 @@ public class MerossService : IAsyncDisposable
             ["nonce"] = nonce
         };
 
-        var resp = await _http.PostAsync("/v1/Auth/signIn", new FormUrlEncodedContent(formData));
+        var client = _httpClientFactory.CreateClient("meross");
+        var resp = await client.PostAsync("/v1/Auth/signIn", new FormUrlEncodedContent(formData));
         var rawJson = await resp.Content.ReadAsStringAsync();
 
         if (!resp.IsSuccessStatusCode)
@@ -124,7 +121,8 @@ public class MerossService : IAsyncDisposable
         req.Headers.Add("Authorization", $"Basic {_token}");
         req.Content = new FormUrlEncodedContent(formData);
 
-        var resp = await _http.SendAsync(req);
+        var client = _httpClientFactory.CreateClient("meross");
+        var resp = await client.SendAsync(req);
         var rawJson = await resp.Content.ReadAsStringAsync();
 
         if (!resp.IsSuccessStatusCode)
@@ -410,6 +408,6 @@ public class MerossService : IAsyncDisposable
                 await _mqttClient.DisconnectAsync();
             _mqttClient.Dispose();
         }
-        _http.Dispose();
+        // HttpClient no necesita Dispose (IHttpClientFactory lo maneja)
     }
 }

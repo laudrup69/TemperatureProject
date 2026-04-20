@@ -446,3 +446,8 @@ C:\TemperatureProject\GoveeMAUI9\obj\Debug\net9.0-windows10.0.19041.0\win10-x64\
 C:\TemperatureProject\GoveeMAUI9\obj\Debug\net9.0-windows10.0.19041.0\win10-x64\qualifiers.txt.intermediate
 C:\TemperatureProject\GoveeMAUI9\obj\Debug\net9.0-windows10.0.19041.0\win10-x64\MultipleQualifiersPerDimensionFound.txt
 C:\TemperatureProject\GoveeMAUI9\obj\Debug\net9.0-windows10.0.19041.0\win10-x64\GoveeMAUI.sourcelink.json
+C:\TemperatureProject\GoveeMAUI9\bin\Debug\net9.0-windows10.0.19041.0\win10-x64\Microsoft.Extensions.Configuration.Binder.dll
+C:\TemperatureProject\GoveeMAUI9\bin\Debug\net9.0-windows10.0.19041.0\win10-x64\Microsoft.Extensions.Diagnostics.dll
+C:\TemperatureProject\GoveeMAUI9\bin\Debug\net9.0-windows10.0.19041.0\win10-x64\Microsoft.Extensions.Diagnostics.Abstractions.dll
+C:\TemperatureProject\GoveeMAUI9\bin\Debug\net9.0-windows10.0.19041.0\win10-x64\Microsoft.Extensions.Http.dll
+C:\TemperatureProject\GoveeMAUI9\bin\Debug\net9.0-windows10.0.19041.0\win10-x64\Microsoft.Extensions.Options.ConfigurationExtensions.dll

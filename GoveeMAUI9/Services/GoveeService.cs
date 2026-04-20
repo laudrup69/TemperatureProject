@@ -7,9 +7,14 @@ namespace GoveeMAUI.Services;
 public class GoveeService
 {
     private const string BaseUrl = "https://openapi.api.govee.com";
-    private HttpClient? _http;
+    private readonly IHttpClientFactory _httpClientFactory;
     private const int MaxRetries = 3;
     private const int InitialDelayMs = 2000;
+
+    public GoveeService(IHttpClientFactory httpClientFactory)
+    {
+        _httpClientFactory = httpClientFactory;
+    }
 
     private HttpClient GetClient()
     {
@@ -17,10 +22,10 @@ public class GoveeService
         if (string.IsNullOrWhiteSpace(key))
             throw new InvalidOperationException("Falta la API Key de Govee. Ve a Ajustes.");
 
-        _http ??= new HttpClient { BaseAddress = new Uri(BaseUrl), Timeout = TimeSpan.FromSeconds(15) };
-        _http.DefaultRequestHeaders.Remove("Govee-API-Key");
-        _http.DefaultRequestHeaders.Add("Govee-API-Key", key);
-        return _http;
+        var client = _httpClientFactory.CreateClient("govee");
+        client.DefaultRequestHeaders.Remove("Govee-API-Key");
+        client.DefaultRequestHeaders.Add("Govee-API-Key", key);
+        return client;
     }
 
     /// <summary>

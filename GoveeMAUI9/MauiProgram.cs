@@ -19,6 +19,24 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf",  "OpenSansSemibold");
             });
 
+        // HttpClient Factory (maneja reutilización de conexiones y ciclo de vida)
+        builder.Services.AddHttpClient("govee")
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri("https://openapi.api.govee.com");
+                client.Timeout = TimeSpan.FromSeconds(15);
+            });
+
+        builder.Services.AddHttpClient("meross")
+            .ConfigureHttpClient(client =>
+            {
+                client.BaseAddress = new Uri("https://iotx-eu.meross.com");
+                client.DefaultRequestHeaders.Add("vender", "Meross");
+                client.DefaultRequestHeaders.Add("AppVersion", "1.9.0");
+                client.DefaultRequestHeaders.Add("AppLanguage", "en");
+                client.DefaultRequestHeaders.Add("User-Agent", "okhttp/3.6.0");
+            });
+
         // Servicios (singleton: una única instancia en toda la app)
         builder.Services.AddSingleton<GoveeService>();
         builder.Services.AddSingleton<MerossService>();
