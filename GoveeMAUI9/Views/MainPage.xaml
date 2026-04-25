@@ -102,7 +102,7 @@
                 FontAttributes="Bold"
                 HeightRequest="52"
                 BackgroundColor="{Binding ManualPlugButtonColor}"
-                IsEnabled="{Binding IsRunning}" />
+                IsEnabled="{Binding IsManualPlugButtonEnabled}" />
 
             <!-- Botón arrancar/parar -->
             <Button Command="{Binding ToggleMonitorCommand}"

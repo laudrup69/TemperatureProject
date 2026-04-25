@@ -18,6 +18,16 @@ public static class SettingsKeys
     public const string Interval = "interval_seconds";
 }
 
+// ── Estados de operación ──────────────────────────────────────────────────────
+
+public enum OperationMode
+{
+    /// <summary>Monitorización automática activa: sistema controla el enchufe por temperatura</summary>
+    Monitoring,
+    /// <summary>Modo manual: usuario controla el enchufe, no hay monitorización</summary>
+    Manual
+}
+
 // ── Govee modelo interno ──────────────────────────────────────────────────────
 
 public class GoveeDevice
