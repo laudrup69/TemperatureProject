@@ -25,6 +25,8 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private double _threshold;
     [ObservableProperty] private string _manualPlugButtonText = "🔌 Encender enchufe manualmente";
     [ObservableProperty] private string _manualPlugButtonColor = "#5A4FD6";
+    [ObservableProperty] private OperationMode _currentMode = OperationMode.Manual;
+    [ObservableProperty] private bool _isManualPlugButtonEnabled = true;
 
     public MainViewModel(MonitorService monitor)
     {
@@ -40,20 +42,39 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task ToggleMonitorAsync()
     {
-        if (_monitor.IsRunning)
+        try
         {
-            _monitor.Stop();
-            _wasRunningWhenError = false;
-            _autoRetryTokenSource?.Cancel();
-            IsRunning = false;
-            StatusText = "Detenido";
-            StatusColor = Colors.Gray;
-            AddLog("⏹️ Monitorización detenida por el usuario.");
-        }
-        else
-        {
-            try
+            if (CurrentMode == OperationMode.Monitoring)
             {
+                // TRANSICIÓN: Monitoring → Manual
+                AddLog("🔄 Deteniendo monitorización...");
+                _monitor.Stop();
+                _wasRunningWhenError = false;
+                _autoRetryTokenSource?.Cancel();
+                IsRunning = false;
+                CurrentMode = OperationMode.Manual;
+                IsManualPlugButtonEnabled = true;
+                
+                // Apagar el enchufe al detener monitoreo
+                try
+                {
+                    await _monitor.SetPlugManuallyAsync(false);
+                    PlugOn = false;
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"⚠️ No se pudo apagar el enchufe: {ex.Message}");
+                }
+                
+                StatusText = "Modo manual";
+                StatusColor = Colors.Gray;
+                AddLog("✅ Monitorización detenida. Modo manual activo.");
+            }
+            else
+            {
+                // TRANSICIÓN: Manual → Monitoring
+                AddLog("🔄 Iniciando monitorización...");
+                
                 var apiKey = Preferences.Get(SettingsKeys.GoveeApiKey, "");
                 if (string.IsNullOrWhiteSpace(apiKey))
                 {
@@ -63,25 +84,45 @@ public partial class MainViewModel : ObservableObject
 
                 Preferences.Set(SettingsKeys.Threshold, Threshold);
 
+                // Si el enchufe estaba encendido manualmente, apágalo antes de monitorear
+                if (PlugOn)
+                {
+                    try
+                    {
+                        AddLog("⚠️ Apagando enchufe antes de activar monitorización...");
+                        await _monitor.SetPlugManuallyAsync(false);
+                        PlugOn = false;
+                    }
+                    catch (Exception ex)
+                    {
+                        AddLog($"⚠️ No se pudo apagar el enchufe: {ex.Message}");
+                    }
+                }
+
                 StatusText = "Conectando...";
                 StatusColor = Color.FromArgb("#F7C26A");
                 IsRunning = true;
+                CurrentMode = OperationMode.Monitoring;
+                IsManualPlugButtonEnabled = false;
                 _wasRunningWhenError = false;
                 _autoRetryCount = 0;
-                _autoRetryTokenSource?.Cancel(); // Cancelar reintentos automáticos pendientes
+                _autoRetryTokenSource?.Cancel();
 
                 await _monitor.StartAsync();
 
                 StatusText = "Monitorizando";
                 StatusColor = Color.FromArgb("#4CAF50");
+                AddLog("✅ Monitorización iniciada. Controles manuales deshabilitados.");
             }
-            catch (Exception ex)
-            {
-                AddLog($"❌ {ex.Message}");
-                IsRunning = false;
-                StatusText = "Error — revisa los Ajustes";
-                StatusColor = Colors.Red;
-            }
+        }
+        catch (Exception ex)
+        {
+            AddLog($"❌ {ex.Message}");
+            IsRunning = false;
+            CurrentMode = OperationMode.Manual;
+            IsManualPlugButtonEnabled = true;
+            StatusText = "Error — revisa los Ajustes";
+            StatusColor = Colors.Red;
         }
     }
 
@@ -97,12 +138,26 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
+            // Si estamos monitoreando, detenemos la monitorización primero
+            if (CurrentMode == OperationMode.Monitoring)
+            {
+                AddLog("⚠️ Deteniendo monitorización para cambiar a control manual...");
+                _monitor.Stop();
+                _wasRunningWhenError = false;
+                _autoRetryTokenSource?.Cancel();
+                IsRunning = false;
+                CurrentMode = OperationMode.Manual;
+                IsManualPlugButtonEnabled = true;
+                StatusText = "Modo manual";
+                StatusColor = Colors.Gray;
+                AddLog("✅ Monitorización detenida. Control manual activado.");
+            }
+
+            // Ahora estamos en modo Manual, cambiar estado del enchufe
             var newState = !PlugOn;
             AddLog($"👆 Control manual → {(newState ? "ENCENDER" : "APAGAR")} enchufe...");
             await _monitor.SetPlugManuallyAsync(newState);
             PlugOn = newState;
-            //ManualPlugButtonText = PlugOn ? "⭕ Apagar enchufe manualmente" : "🔌 Encender enchufe manualmente";
-            //ManualPlugButtonColor = PlugOn ? "#F44336" : "#5A4FD6";
             AddLog($"✅ Enchufe {(PlugOn ? "ENCENDIDO" : "APAGADO")} manualmente.");
         }
         catch (Exception ex)
@@ -143,6 +198,8 @@ public partial class MainViewModel : ObservableObject
             StatusText = "Error";
             StatusColor = Colors.Red;
             IsRunning = false;
+            CurrentMode = OperationMode.Manual;
+            IsManualPlugButtonEnabled = true;
             _wasRunningWhenError = true;
             _autoRetryCount = 0;
             
