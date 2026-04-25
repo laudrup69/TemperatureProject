@@ -25,10 +25,13 @@
 		<AndroidPackageFormat>apk</AndroidPackageFormat>
 		<DebugSymbols>False</DebugSymbols>
 		<AndroidKeyStore>True</AndroidKeyStore>
-		<AndroidSigningKeyStore>C:\keys\govee.keystore</AndroidSigningKeyStore>
-		<AndroidSigningKeyAlias>goveekey</AndroidSigningKeyAlias>
-		<AndroidSigningKeyPass>696969</AndroidSigningKeyPass>
-		<AndroidSigningStorePass>696969</AndroidSigningStorePass>
+		<!-- Signing credentials configured in GoveeMAUI.csproj.user (local machine) -->
+		<!-- Each developer must configure:
+		     - AndroidSigningKeyStore (path to keystore)
+		     - AndroidSigningKeyAlias (key alias)
+		     - AndroidSigningKeyPass (key password)
+		     - AndroidSigningStorePass (keystore password)
+		-->
 	</PropertyGroup>
 
 	<ItemGroup>
