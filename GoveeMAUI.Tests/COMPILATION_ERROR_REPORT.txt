@@ -1,0 +1,54 @@
+﻿=== COMPILATION ERRORS REPORT ===
+
+Total Errors: 38
+
+FILE: C:\TemperatureProject\GoveeMAUI.Tests\Services\GoveeServiceTests.cs
+Errors: 2
+  [CS1061] Line 78:14 - "ObjectAssertions" no contiene una definici├│n para "ThrowAsync" ni un m├®todo de extensi├│n accesible "ThrowAsync" que acepte un primer argumento del tipo "ObjectAssertions" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 78:14 - "ObjectAssertions" no contiene una definici├│n para "ThrowAsync" ni un m├®todo de extensi├│n accesible "ThrowAsync" que acepte un primer argumento del tipo "ObjectAssertions" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+
+FILE: C:\TemperatureProject\GoveeMAUI.Tests\Services\MerossServiceTests.cs
+Errors: 6
+  [CS1061] Line 42:14 - "ObjectAssertions" no contiene una definici├│n para "ThrowAsync" ni un m├®todo de extensi├│n accesible "ThrowAsync" que acepte un primer argumento del tipo "ObjectAssertions" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 74:14 - "ObjectAssertions" no contiene una definici├│n para "ThrowAsync" ni un m├®todo de extensi├│n accesible "ThrowAsync" que acepte un primer argumento del tipo "ObjectAssertions" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 110:14 - "MerossService" no contiene una definici├│n para "Dispose" ni un m├®todo de extensi├│n accesible "Dispose" que acepte un primer argumento del tipo "MerossService" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 42:14 - "ObjectAssertions" no contiene una definici├│n para "ThrowAsync" ni un m├®todo de extensi├│n accesible "ThrowAsync" que acepte un primer argumento del tipo "ObjectAssertions" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 74:14 - "ObjectAssertions" no contiene una definici├│n para "ThrowAsync" ni un m├®todo de extensi├│n accesible "ThrowAsync" que acepte un primer argumento del tipo "ObjectAssertions" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 110:14 - "MerossService" no contiene una definici├│n para "Dispose" ni un m├®todo de extensi├│n accesible "Dispose" que acepte un primer argumento del tipo "MerossService" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+
+FILE: C:\TemperatureProject\GoveeMAUI.Tests\Services\MonitorServiceTests.cs
+Errors: 6
+  [CS1929] Line 178:9 - 'ISetup<MerossService, Task>' no contiene una definici├│n para 'ReturnsAsync' y la mejor sobrecarga del m├®todo de extensi├│n 'SequenceExtensions.ReturnsAsync<Action>(ISetupSequentialResult<Task<Action>>, Action)' requiere un receptor del tipo 'Moq.Language.ISetupSequentialResult<System.Threading.Tasks.Task<System.Action>>'
+  [CS1929] Line 211:9 - 'ISetup<MerossService, Task>' no contiene una definici├│n para 'ReturnsAsync' y la mejor sobrecarga del m├®todo de extensi├│n 'SequenceExtensions.ReturnsAsync<Action>(ISetupSequentialResult<Task<Action>>, Action)' requiere un receptor del tipo 'Moq.Language.ISetupSequentialResult<System.Threading.Tasks.Task<System.Action>>'
+  [CS1929] Line 250:9 - 'ISetup<MerossService, Task>' no contiene una definici├│n para 'ReturnsAsync' y la mejor sobrecarga del m├®todo de extensi├│n 'SequenceExtensions.ReturnsAsync<Action>(ISetupSequentialResult<Task<Action>>, Action)' requiere un receptor del tipo 'Moq.Language.ISetupSequentialResult<System.Threading.Tasks.Task<System.Action>>'
+  [CS1929] Line 178:9 - 'ISetup<MerossService, Task>' no contiene una definici├│n para 'ReturnsAsync' y la mejor sobrecarga del m├®todo de extensi├│n 'SequenceExtensions.ReturnsAsync<Action>(ISetupSequentialResult<Task<Action>>, Action)' requiere un receptor del tipo 'Moq.Language.ISetupSequentialResult<System.Threading.Tasks.Task<System.Action>>'
+  [CS1929] Line 211:9 - 'ISetup<MerossService, Task>' no contiene una definici├│n para 'ReturnsAsync' y la mejor sobrecarga del m├®todo de extensi├│n 'SequenceExtensions.ReturnsAsync<Action>(ISetupSequentialResult<Task<Action>>, Action)' requiere un receptor del tipo 'Moq.Language.ISetupSequentialResult<System.Threading.Tasks.Task<System.Action>>'
+  [CS1929] Line 250:9 - 'ISetup<MerossService, Task>' no contiene una definici├│n para 'ReturnsAsync' y la mejor sobrecarga del m├®todo de extensi├│n 'SequenceExtensions.ReturnsAsync<Action>(ISetupSequentialResult<Task<Action>>, Action)' requiere un receptor del tipo 'Moq.Language.ISetupSequentialResult<System.Threading.Tasks.Task<System.Action>>'
+
+FILE: C:\TemperatureProject\GoveeMAUI.Tests\ViewModels\MainViewModelTests.cs
+Errors: 24
+  [CS0079] Line 46:36 - El evento 'MonitorService.OnReadingUpdated' solo puede aparecer a la izquierda de += o -=.
+  [CS0079] Line 47:36 - El evento 'MonitorService.OnPlugStateChanged' solo puede aparecer a la izquierda de += o -=.
+  [CS0079] Line 48:36 - El evento 'MonitorService.OnLogMessage' solo puede aparecer a la izquierda de += o -=.
+  [CS0079] Line 49:36 - El evento 'MonitorService.OnError' solo puede aparecer a la izquierda de += o -=.
+  [CS1929] Line 59:9 - 'ISetup<MonitorService, Task>' no contiene una definici├│n para 'ReturnsAsync' y la mejor sobrecarga del m├®todo de extensi├│n 'SequenceExtensions.ReturnsAsync<Action>(ISetupSequentialResult<Task<Action>>, Action)' requiere un receptor del tipo 'Moq.Language.ISetupSequentialResult<System.Threading.Tasks.Task<System.Action>>'
+  [CS1929] Line 126:9 - 'ISetup<MonitorService, Task>' no contiene una definici├│n para 'ReturnsAsync' y la mejor sobrecarga del m├®todo de extensi├│n 'SequenceExtensions.ReturnsAsync<Action>(ISetupSequentialResult<Task<Action>>, Action)' requiere un receptor del tipo 'Moq.Language.ISetupSequentialResult<System.Threading.Tasks.Task<System.Action>>'
+  [CS1929] Line 146:9 - 'ISetup<MonitorService, Task>' no contiene una definici├│n para 'ReturnsAsync' y la mejor sobrecarga del m├®todo de extensi├│n 'SequenceExtensions.ReturnsAsync<Action>(ISetupSequentialResult<Task<Action>>, Action)' requiere un receptor del tipo 'Moq.Language.ISetupSequentialResult<System.Threading.Tasks.Task<System.Action>>'
+  [CS1061] Line 169:14 - "MainViewModel" no contiene una definici├│n para "OnReadingUpdated" ni un m├®todo de extensi├│n accesible "OnReadingUpdated" que acepte un primer argumento del tipo "MainViewModel" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 180:14 - "MainViewModel" no contiene una definici├│n para "OnPlugStateChanged" ni un m├®todo de extensi├│n accesible "OnPlugStateChanged" que acepte un primer argumento del tipo "MainViewModel" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 193:14 - "MainViewModel" no contiene una definici├│n para "OnLogMessage" ni un m├®todo de extensi├│n accesible "OnLogMessage" que acepte un primer argumento del tipo "MainViewModel" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 206:18 - "MainViewModel" no contiene una definici├│n para "OnLogMessage" ni un m├®todo de extensi├│n accesible "OnLogMessage" que acepte un primer argumento del tipo "MainViewModel" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 218:14 - "MainViewModel" no contiene una definici├│n para "OnError" ni un m├®todo de extensi├│n accesible "OnError" que acepte un primer argumento del tipo "MainViewModel" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS0079] Line 46:36 - El evento 'MonitorService.OnReadingUpdated' solo puede aparecer a la izquierda de += o -=.
+  [CS0079] Line 47:36 - El evento 'MonitorService.OnPlugStateChanged' solo puede aparecer a la izquierda de += o -=.
+  [CS0079] Line 48:36 - El evento 'MonitorService.OnLogMessage' solo puede aparecer a la izquierda de += o -=.
+  [CS0079] Line 49:36 - El evento 'MonitorService.OnError' solo puede aparecer a la izquierda de += o -=.
+  [CS1929] Line 59:9 - 'ISetup<MonitorService, Task>' no contiene una definici├│n para 'ReturnsAsync' y la mejor sobrecarga del m├®todo de extensi├│n 'SequenceExtensions.ReturnsAsync<Action>(ISetupSequentialResult<Task<Action>>, Action)' requiere un receptor del tipo 'Moq.Language.ISetupSequentialResult<System.Threading.Tasks.Task<System.Action>>'
+  [CS1929] Line 126:9 - 'ISetup<MonitorService, Task>' no contiene una definici├│n para 'ReturnsAsync' y la mejor sobrecarga del m├®todo de extensi├│n 'SequenceExtensions.ReturnsAsync<Action>(ISetupSequentialResult<Task<Action>>, Action)' requiere un receptor del tipo 'Moq.Language.ISetupSequentialResult<System.Threading.Tasks.Task<System.Action>>'
+  [CS1929] Line 146:9 - 'ISetup<MonitorService, Task>' no contiene una definici├│n para 'ReturnsAsync' y la mejor sobrecarga del m├®todo de extensi├│n 'SequenceExtensions.ReturnsAsync<Action>(ISetupSequentialResult<Task<Action>>, Action)' requiere un receptor del tipo 'Moq.Language.ISetupSequentialResult<System.Threading.Tasks.Task<System.Action>>'
+  [CS1061] Line 169:14 - "MainViewModel" no contiene una definici├│n para "OnReadingUpdated" ni un m├®todo de extensi├│n accesible "OnReadingUpdated" que acepte un primer argumento del tipo "MainViewModel" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 180:14 - "MainViewModel" no contiene una definici├│n para "OnPlugStateChanged" ni un m├®todo de extensi├│n accesible "OnPlugStateChanged" que acepte un primer argumento del tipo "MainViewModel" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 193:14 - "MainViewModel" no contiene una definici├│n para "OnLogMessage" ni un m├®todo de extensi├│n accesible "OnLogMessage" que acepte un primer argumento del tipo "MainViewModel" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 206:18 - "MainViewModel" no contiene una definici├│n para "OnLogMessage" ni un m├®todo de extensi├│n accesible "OnLogMessage" que acepte un primer argumento del tipo "MainViewModel" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+  [CS1061] Line 218:14 - "MainViewModel" no contiene una definici├│n para "OnError" ni un m├®todo de extensi├│n accesible "OnError" que acepte un primer argumento del tipo "MainViewModel" (┬┐falta alguna directiva using o una referencia de ensamblado?)
+

@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GoveeMAUI.Models;
@@ -7,7 +8,8 @@ namespace GoveeMAUI.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
-    private readonly MonitorService _monitor;
+    private readonly IMonitorService _monitor;
+    private readonly IPreferencesService _preferences;
     private CancellationTokenSource? _autoRetryTokenSource;
     private bool _wasRunningWhenError = false;
     private int _autoRetryCount = 0;
@@ -28,10 +30,11 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private OperationMode _currentMode = OperationMode.Manual;
     [ObservableProperty] private bool _isManualPlugButtonEnabled = true;
 
-    public MainViewModel(MonitorService monitor)
+    public MainViewModel(IMonitorService monitor, IPreferencesService preferences)
     {
         _monitor = monitor;
-        _threshold = Preferences.Get(SettingsKeys.Threshold, 18.0);
+        _preferences = preferences;
+        _threshold = _preferences.Get(SettingsKeys.Threshold, 18.0);
 
         _monitor.OnReadingUpdated += OnReading;
         _monitor.OnPlugStateChanged += OnPlugChanged;
@@ -75,14 +78,14 @@ public partial class MainViewModel : ObservableObject
                 // TRANSICIÓN: Manual → Monitoring
                 AddLog("🔄 Iniciando monitorización...");
                 
-                var apiKey = Preferences.Get(SettingsKeys.GoveeApiKey, "");
+                var apiKey = _preferences.Get(SettingsKeys.GoveeApiKey, "");
                 if (string.IsNullOrWhiteSpace(apiKey))
                 {
                     AddLog("❌ Falta la API Key de Govee. Ve a ⚙️ Ajustes primero.");
                     return;
                 }
 
-                Preferences.Set(SettingsKeys.Threshold, Threshold);
+                _preferences.Set(SettingsKeys.Threshold, Threshold);
 
                 // Si el enchufe estaba encendido manualmente, apágalo antes de monitorear
                 if (PlugOn)
@@ -129,7 +132,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void SaveThreshold()
     {
-        Preferences.Set(SettingsKeys.Threshold, Threshold);
+        _preferences.Set(SettingsKeys.Threshold, Threshold);
         AddLog($"💾 Umbral guardado: {Threshold:F1}°C");
     }
 
@@ -177,17 +180,38 @@ public partial class MainViewModel : ObservableObject
     }
 
     private void OnPlugChanged(bool isOn)
-        => MainThread.BeginInvokeOnMainThread(() => PlugOn = isOn);
+    {
+        try
+        {
+            MainThread.BeginInvokeOnMainThread(() => PlugOn = isOn);
+        }
+        catch (COMException)
+        {
+            // En tests o sin UI, no hay DispatcherQueue
+            PlugOn = isOn;
+        }
+    }
 
     private void AddLog(string msg)
     {
-        MainThread.BeginInvokeOnMainThread(() =>
+        try
         {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                var line = $"[{DateTime.Now:HH:mm:ss}]  {msg}";
+                Log = Log.Length > 3000
+                    ? line + "\n" + Log[..2000]
+                    : line + "\n" + Log;
+            });
+        }
+        catch (COMException)
+        {
+            // En tests o sin UI, no hay DispatcherQueue - hacer update directo
             var line = $"[{DateTime.Now:HH:mm:ss}]  {msg}";
             Log = Log.Length > 3000
                 ? line + "\n" + Log[..2000]
                 : line + "\n" + Log;
-        });
+        }
     }
 
     private void OnErrorReceived(string err)
@@ -265,5 +289,11 @@ public partial class MainViewModel : ObservableObject
     {
         ManualPlugButtonText = value ? "⭕ Apagar enchufe manualmente" : "🔌 Encender enchufe manualmente";
         ManualPlugButtonColor = value ? "#F44336" : "#5A4FD6";
+    }
+
+    // Actualizar IsManualPlugButtonEnabled cuando cambie el modo
+    partial void OnCurrentModeChanged(OperationMode value)
+    {
+        IsManualPlugButtonEnabled = (value == OperationMode.Manual);
     }
 }

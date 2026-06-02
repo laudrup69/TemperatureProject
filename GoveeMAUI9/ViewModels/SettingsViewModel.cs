@@ -7,7 +7,8 @@ namespace GoveeMAUI.ViewModels;
 
 public partial class SettingsViewModel : ObservableObject
 {
-    private readonly GoveeService _govee;
+    private readonly IGoveeService _govee;
+    private readonly IPreferencesService _preferences;
 
     [ObservableProperty] private string _goveeApiKey     = "";
     [ObservableProperty] private string _goveeDeviceId   = "";
@@ -21,37 +22,38 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _statusMessage   = "";
     [ObservableProperty] private string _deviceList      = "";
 
-    public SettingsViewModel(GoveeService govee)
+    public SettingsViewModel(IGoveeService govee, IPreferencesService preferences)
     {
         _govee = govee;
+        _preferences = preferences;
         LoadSettings();
     }
 
     private void LoadSettings()
     {
-        GoveeApiKey     = Preferences.Get(SettingsKeys.GoveeApiKey,    "");
-        GoveeDeviceId   = Preferences.Get(SettingsKeys.GoveeDeviceId,  "");
-        GoveeModel      = Preferences.Get(SettingsKeys.GoveeModel,     "");
-        MerossEmail     = Preferences.Get(SettingsKeys.MerossEmail,    "");
-        MerossPassword  = Preferences.Get(SettingsKeys.MerossPassword, "");
-        MerossSecret    = Preferences.Get(SettingsKeys.MerossSecret,   "");
-        MerossDevice    = Preferences.Get(SettingsKeys.MerossDevice,   "");
-        Threshold       = Preferences.Get(SettingsKeys.Threshold,      18.0);
-        IntervalSeconds = Preferences.Get(SettingsKeys.Interval,       60);
+        GoveeApiKey     = _preferences.Get(SettingsKeys.GoveeApiKey,    "");
+        GoveeDeviceId   = _preferences.Get(SettingsKeys.GoveeDeviceId,  "");
+        GoveeModel      = _preferences.Get(SettingsKeys.GoveeModel,     "");
+        MerossEmail     = _preferences.Get(SettingsKeys.MerossEmail,    "");
+        MerossPassword  = _preferences.Get(SettingsKeys.MerossPassword, "");
+        MerossSecret    = _preferences.Get(SettingsKeys.MerossSecret,   "");
+        MerossDevice    = _preferences.Get(SettingsKeys.MerossDevice,   "");
+        Threshold       = _preferences.Get(SettingsKeys.Threshold,      18.0);
+        IntervalSeconds = _preferences.Get(SettingsKeys.Interval,       60);
     }
 
     [RelayCommand]
     private void Save()
     {
-        Preferences.Set(SettingsKeys.GoveeApiKey,    GoveeApiKey);
-        Preferences.Set(SettingsKeys.GoveeDeviceId,  GoveeDeviceId);
-        Preferences.Set(SettingsKeys.GoveeModel,     GoveeModel);
-        Preferences.Set(SettingsKeys.MerossEmail,    MerossEmail);
-        Preferences.Set(SettingsKeys.MerossSecret,   MerossSecret);
-        Preferences.Set(SettingsKeys.MerossPassword, MerossPassword);
-        Preferences.Set(SettingsKeys.MerossDevice,   MerossDevice);
-        Preferences.Set(SettingsKeys.Threshold,      Threshold);
-        Preferences.Set(SettingsKeys.Interval,       IntervalSeconds);
+        _preferences.Set(SettingsKeys.GoveeApiKey,    GoveeApiKey);
+        _preferences.Set(SettingsKeys.GoveeDeviceId,  GoveeDeviceId);
+        _preferences.Set(SettingsKeys.GoveeModel,     GoveeModel);
+        _preferences.Set(SettingsKeys.MerossEmail,    MerossEmail);
+        _preferences.Set(SettingsKeys.MerossSecret,   MerossSecret);
+        _preferences.Set(SettingsKeys.MerossPassword, MerossPassword);
+        _preferences.Set(SettingsKeys.MerossDevice,   MerossDevice);
+        _preferences.Set(SettingsKeys.Threshold,      Threshold);
+        _preferences.Set(SettingsKeys.Interval,       IntervalSeconds);
         StatusMessage = "Ajustes guardados correctamente.";
     }
 
@@ -60,7 +62,7 @@ public partial class SettingsViewModel : ObservableObject
     {
         try
         {
-            Preferences.Set(SettingsKeys.GoveeApiKey, GoveeApiKey);
+            _preferences.Set(SettingsKeys.GoveeApiKey, GoveeApiKey);
             StatusMessage = "Buscando sensores Govee...";
             DeviceList    = "";
 
