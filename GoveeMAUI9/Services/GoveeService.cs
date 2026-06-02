@@ -4,21 +4,23 @@ using GoveeMAUI.Models;
 
 namespace GoveeMAUI.Services;
 
-public class GoveeService
+public class GoveeService : IGoveeService
 {
     private const string BaseUrl = "https://openapi.api.govee.com";
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IPreferencesService _preferences;
     private const int MaxRetries = 3;
     private const int InitialDelayMs = 2000;
 
-    public GoveeService(IHttpClientFactory httpClientFactory)
+    public GoveeService(IHttpClientFactory httpClientFactory, IPreferencesService preferences)
     {
         _httpClientFactory = httpClientFactory;
+        _preferences = preferences;
     }
 
     private HttpClient GetClient()
     {
-        var key = Preferences.Get(SettingsKeys.GoveeApiKey, "");
+        var key = _preferences.Get(SettingsKeys.GoveeApiKey, "");
         if (string.IsNullOrWhiteSpace(key))
             throw new InvalidOperationException("Falta la API Key de Govee. Ve a Ajustes.");
 
@@ -74,7 +76,7 @@ public class GoveeService
 
     // ── Estado del dispositivo (temperatura y humedad) ────────────────────────
 
-    public async Task<SensorReading> GetDeviceStateAsync(string deviceId, string model)
+    public async Task<SensorReading?> GetDeviceStateAsync(string deviceId, string model)
     {
         return await RetryAsync(async () =>
         {

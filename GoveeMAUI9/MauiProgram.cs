@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using GoveeMAUI.Models;
 using GoveeMAUI.Services;
 using GoveeMAUI.ViewModels;
 using GoveeMAUI.Views;
@@ -37,10 +38,14 @@ public static class MauiProgram
                 client.DefaultRequestHeaders.Add("User-Agent", "okhttp/3.6.0");
             });
 
+        // Servicio de Preferences (singleton: una única instancia que envuelve Preferences de MAUI)
+        builder.Services.AddSingleton<IPreferencesService, MauiPreferencesService>();
+
         // Servicios (singleton: una única instancia en toda la app)
-        builder.Services.AddSingleton<GoveeService>();
-        builder.Services.AddSingleton<MerossService>();
-        builder.Services.AddSingleton<MonitorService>();
+        // Registrar contra interfaces para mejor testabilidad
+        builder.Services.AddSingleton<IGoveeService, GoveeService>();
+        builder.Services.AddSingleton<IMerossService, MerossService>();
+        builder.Services.AddSingleton<IMonitorService, MonitorService>();
 
         // ViewModels
         builder.Services.AddSingleton<MainViewModel>();

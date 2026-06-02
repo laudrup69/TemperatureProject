@@ -7,7 +7,7 @@ using GoveeMAUI.Models;
 
 namespace GoveeMAUI.Services;
 
-public class MerossService : IAsyncDisposable
+public class MerossService : IMerossService
 {
     private const string CloudBaseUrl = "https://iotx-eu.meross.com";
     private const string MqttBroker = "mqtt.meross.com";
@@ -16,6 +16,7 @@ public class MerossService : IAsyncDisposable
     private const int MaxMqttReconnectAttempts = 10;
 
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IPreferencesService _preferences;
     private IMqttClient? _mqttClient;
     private int _mqttReconnectAttempts = 0;
 
@@ -30,18 +31,19 @@ public class MerossService : IAsyncDisposable
     public bool IsConnected => _mqttClient?.IsConnected == true;
     public event Action<string>? OnLog;
 
-    public MerossService(IHttpClientFactory httpClientFactory)
+    public MerossService(IHttpClientFactory httpClientFactory, IPreferencesService preferences)
     {
         _httpClientFactory = httpClientFactory;
+        _preferences = preferences;
     }
 
     // ── Inicialización ───────────────────────────────────────────────────────
 
     public async Task InitializeAsync()
     {
-        var email = Preferences.Get(SettingsKeys.MerossEmail, "");
-        var password = Preferences.Get(SettingsKeys.MerossPassword, "");
-        var devName = Preferences.Get(SettingsKeys.MerossDevice, "");
+        var email = _preferences.Get(SettingsKeys.MerossEmail, "");
+        var password = _preferences.Get(SettingsKeys.MerossPassword, "");
+        var devName = _preferences.Get(SettingsKeys.MerossDevice, "");
 
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
             throw new InvalidOperationException("Faltan credenciales de Meross. Ve a Ajustes.");
@@ -66,7 +68,7 @@ public class MerossService : IAsyncDisposable
         var nonce = GenerateNonce();
         var paramsJson = JsonSerializer.Serialize(new { email, password });
         var params64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(paramsJson));
-        var secret = Preferences.Get(SettingsKeys.MerossSecret, DefaultSecret);
+        var secret = _preferences.Get(SettingsKeys.MerossSecret, DefaultSecret);
         var sign = Md5(secret + timestamp + nonce + params64);
 
         var formData = new Dictionary<string, string>
@@ -106,7 +108,7 @@ public class MerossService : IAsyncDisposable
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var nonce = GenerateNonce();
         var params64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("{}"));
-        var secret = Preferences.Get(SettingsKeys.MerossSecret, DefaultSecret);
+        var secret = _preferences.Get(SettingsKeys.MerossSecret, DefaultSecret);
         var sign = Md5(secret + timestamp + nonce + params64);
 
         var formData = new Dictionary<string, string>
@@ -399,6 +401,17 @@ public class MerossService : IAsyncDisposable
 
     private static string Md5(string s)
         => Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(s))).ToLower();
+
+    // ── Desconexión ──────────────────────────────────────────────────────────
+
+    public async Task DisconnectAsync()
+    {
+        if (_mqttClient?.IsConnected == true)
+        {
+            Log("Desconectando MQTT...");
+            await _mqttClient.DisconnectAsync();
+        }
+    }
 
     public async ValueTask DisposeAsync()
     {

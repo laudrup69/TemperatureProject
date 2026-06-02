@@ -2,10 +2,11 @@ using GoveeMAUI.Models;
 
 namespace GoveeMAUI.Services;
 
-public class MonitorService
+public class MonitorService : IMonitorService
 {
-    private readonly GoveeService _govee;
-    private readonly MerossService _meross;
+    private readonly IGoveeService _govee;
+    private readonly IMerossService _meross;
+    private readonly IPreferencesService _preferences;
 
     private CancellationTokenSource? _cts;
     private bool _plugOn = false;
@@ -19,10 +20,11 @@ public class MonitorService
     public event Action<string>? OnLogMessage;
     public event Action<string>? OnError;
 
-    public MonitorService(GoveeService govee, MerossService meross)
+    public MonitorService(IGoveeService govee, IMerossService meross, IPreferencesService preferences)
     {
         _govee = govee;
         _meross = meross;
+        _preferences = preferences;
 
         // Redirigir logs internos de Meross a la UI
         _meross.OnLog += msg => OnLogMessage?.Invoke($"[Meross] {msg}");
@@ -73,8 +75,8 @@ public class MonitorService
 
     private async Task RunLoopAsync(CancellationToken token)
     {
-        var deviceId = Preferences.Get(SettingsKeys.GoveeDeviceId, "");
-        var model = Preferences.Get(SettingsKeys.GoveeModel, "");
+        var deviceId = _preferences.Get(SettingsKeys.GoveeDeviceId, "");
+        var model = _preferences.Get(SettingsKeys.GoveeModel, "");
 
         if (string.IsNullOrWhiteSpace(deviceId))
         {
@@ -90,8 +92,8 @@ public class MonitorService
                 }
                 deviceId = devices[0].Device;
                 model = devices[0].Model;
-                Preferences.Set(SettingsKeys.GoveeDeviceId, deviceId);
-                Preferences.Set(SettingsKeys.GoveeModel, model);
+                _preferences.Set(SettingsKeys.GoveeDeviceId, deviceId);
+                _preferences.Set(SettingsKeys.GoveeModel, model);
                 OnLogMessage?.Invoke($"✅ Sensor detectado: {devices[0].DeviceName} ({model})");
             }
             catch (Exception ex)
@@ -110,7 +112,7 @@ public class MonitorService
         OnLogMessage?.Invoke("🔄 Iniciando lecturas...");
         _consecutiveErrors = 0;
 
-        var intervalSecs = Preferences.Get(SettingsKeys.Interval, 60);
+        var intervalSecs = _preferences.Get(SettingsKeys.Interval, 60);
 
         // Primera lectura inmediata sin esperar el intervalo
         await LeerYControlarAsync(deviceId, model);
@@ -138,7 +140,7 @@ public class MonitorService
         try
         {
             var reading = await _govee.GetDeviceStateAsync(deviceId, model);
-            var threshold = Preferences.Get(SettingsKeys.Threshold, 18.0);
+            var threshold = _preferences.Get(SettingsKeys.Threshold, 18.0);
 
             // Reset contador de errores en lectura exitosa
             _consecutiveErrors = 0;

@@ -18,6 +18,88 @@ public static class SettingsKeys
     public const string Interval = "interval_seconds";
 }
 
+// ── Abstracción de Preferences para testabilidad ─────────────────────────────
+
+public interface IPreferencesService
+{
+    string Get(string key, string defaultValue);
+    int Get(string key, int defaultValue);
+    double Get(string key, double defaultValue);
+    void Set(string key, string value);
+    void Set(string key, int value);
+    void Set(string key, double value);
+    void Remove(string key);
+    void Clear();
+}
+
+/// <summary>
+/// Implementación que envuelve el Preferences estático de MAUI.
+/// </summary>
+public class MauiPreferencesService : IPreferencesService
+{
+    public string Get(string key, string defaultValue) 
+        => Preferences.Get(key, defaultValue);
+
+    public int Get(string key, int defaultValue) 
+        => Preferences.Get(key, defaultValue);
+
+    public double Get(string key, double defaultValue) 
+        => Preferences.Get(key, defaultValue);
+
+    public void Set(string key, string value) 
+        => Preferences.Set(key, value);
+
+    public void Set(string key, int value) 
+        => Preferences.Set(key, value);
+
+    public void Set(string key, double value) 
+        => Preferences.Set(key, value);
+
+    public void Remove(string key) 
+        => Preferences.Remove(key);
+
+    public void Clear() 
+        => Preferences.Clear();
+}
+
+// ── Abstracción de Servicios para testabilidad ────────────────────────────────
+
+/// <summary>
+/// Interfaz para el servicio Govee (lectura de sensores)
+/// </summary>
+public interface IGoveeService
+{
+    Task<List<GoveeDevice>> GetDevicesAsync();
+    Task<SensorReading?> GetDeviceStateAsync(string deviceId, string model);
+}
+
+/// <summary>
+/// Interfaz para el servicio Meross (control de enchufes)
+/// </summary>
+public interface IMerossService : IAsyncDisposable
+{
+    bool IsConnected { get; }
+    event Action<string>? OnLog;
+    Task InitializeAsync();
+    Task SetPlugAsync(bool on);
+    Task DisconnectAsync();
+}
+
+/// <summary>
+/// Interfaz para el servicio Monitor (orquestación de lectura y control)
+/// </summary>
+public interface IMonitorService
+{
+    bool IsRunning { get; }
+    event Action<SensorReading>? OnReadingUpdated;
+    event Action<bool>? OnPlugStateChanged;
+    event Action<string>? OnLogMessage;
+    event Action<string>? OnError;
+    Task StartAsync();
+    void Stop();
+    Task SetPlugManuallyAsync(bool on);
+}
+
 // ── Estados de operación ──────────────────────────────────────────────────────
 
 public enum OperationMode
