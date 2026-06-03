@@ -10,7 +10,7 @@
 
         <!-- Activity principal — única con LAUNCHER -->
         <activity
-            android:name="com.personal.goveetempcontrol.MainActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/Maui.SplashTheme"
@@ -24,8 +24,8 @@
 
         <!-- Evitar que la activity de splash de MAUI aparezca como segundo icono -->
         <activity-alias
-            android:name="com.personal.goveetempcontrol.MainActivityAlias"
-            android:targetActivity="com.personal.goveetempcontrol.MainActivity"
+            android:name=".MainActivityAlias"
+            android:targetActivity=".MainActivity"
             android:exported="false"
             tools:node="remove" />
 
