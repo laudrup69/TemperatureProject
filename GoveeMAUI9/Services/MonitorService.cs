@@ -32,7 +32,14 @@ public class MonitorService : IMonitorService
 
     public async Task StartAsync()
     {
-        if (IsRunning) return;
+        if (IsRunning) 
+        {
+            OnLogMessage?.Invoke("⚠️ Monitorización ya está en ejecución.");
+            return;
+        }
+
+        System.Diagnostics.Debug.WriteLine("[MonitorService] 🟢 StartAsync() llamado");
+        OnLogMessage?.Invoke("🔌 Iniciando monitorización...");
 
         // Intentamos conectar Meross — si falla continuamos solo con temperatura
         try
@@ -51,11 +58,19 @@ public class MonitorService : IMonitorService
         IsRunning = true;
         _consecutiveErrors = 0;
 
+        System.Diagnostics.Debug.WriteLine("[MonitorService] ▶️ RunLoopAsync iniciado");
         _ = RunLoopAsync(_cts.Token);
     }
 
     public void Stop()
     {
+        if (!IsRunning)
+        {
+            System.Diagnostics.Debug.WriteLine("[MonitorService] ⚠️ Stop() llamado pero ya estaba detenido");
+            return;
+        }
+
+        System.Diagnostics.Debug.WriteLine("[MonitorService] ⏹️ Stop() llamado - canceling token");
         _cts?.Cancel();
         IsRunning = false;
         OnLogMessage?.Invoke("⏹️ Monitorización detenida.");
@@ -75,6 +90,8 @@ public class MonitorService : IMonitorService
 
     private async Task RunLoopAsync(CancellationToken token)
     {
+        System.Diagnostics.Debug.WriteLine("[MonitorService] 📍 RunLoopAsync iniciado");
+        
         var deviceId = _preferences.Get(SettingsKeys.GoveeDeviceId, "");
         var model = _preferences.Get(SettingsKeys.GoveeModel, "");
 
@@ -88,6 +105,7 @@ public class MonitorService : IMonitorService
                 {
                     OnError?.Invoke("No se encontró ningún sensor Govee. Ve a Ajustes y detecta los dispositivos.");
                     IsRunning = false;
+                    System.Diagnostics.Debug.WriteLine("[MonitorService] ❌ Ningún sensor Govee encontrado");
                     return;
                 }
                 deviceId = devices[0].Device;
@@ -100,7 +118,7 @@ public class MonitorService : IMonitorService
             {
                 OnError?.Invoke($"Error buscando sensor Govee: {ex.Message}");
                 IsRunning = false;
-                // Aquí NO retornamos inmediatamente; MainViewModel puede reintentar automáticamente
+                System.Diagnostics.Debug.WriteLine($"[MonitorService] ❌ Error detectando sensor: {ex.Message}");
                 return;
             }
         }
@@ -110,12 +128,20 @@ public class MonitorService : IMonitorService
         }
 
         OnLogMessage?.Invoke("🔄 Iniciando lecturas...");
+        System.Diagnostics.Debug.WriteLine("[MonitorService] ✅ Sensor configurado, entrando en bucle principal");
         _consecutiveErrors = 0;
 
         var intervalSecs = _preferences.Get(SettingsKeys.Interval, 60);
 
         // Primera lectura inmediata sin esperar el intervalo
-        await LeerYControlarAsync(deviceId, model);
+        try
+        {
+            await LeerYControlarAsync(deviceId, model);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MonitorService] ⚠️ Error en primera lectura: {ex.Message}");
+        }
 
         while (!token.IsCancellationRequested)
         {
@@ -125,14 +151,25 @@ public class MonitorService : IMonitorService
             }
             catch (TaskCanceledException)
             {
+                System.Diagnostics.Debug.WriteLine("[MonitorService] 🛑 RunLoopAsync cancelado (pausa de app)");
                 break;
             }
 
             if (!token.IsCancellationRequested)
-                await LeerYControlarAsync(deviceId, model);
+            {
+                try
+                {
+                    await LeerYControlarAsync(deviceId, model);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MonitorService] ⚠️ Error en LeerYControlarAsync: {ex.Message}");
+                }
+            }
         }
 
         IsRunning = false;
+        System.Diagnostics.Debug.WriteLine("[MonitorService] 🏁 RunLoopAsync finalizado");
     }
 
     private async Task LeerYControlarAsync(string deviceId, string model)
