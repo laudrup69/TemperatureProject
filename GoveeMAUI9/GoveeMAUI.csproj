@@ -25,13 +25,10 @@
 		<AndroidPackageFormat>apk</AndroidPackageFormat>
 		<DebugSymbols>False</DebugSymbols>
 		<AndroidKeyStore>True</AndroidKeyStore>
-		<!-- Signing credentials configured in GoveeMAUI.csproj.user (local machine) -->
-		<!-- Each developer must configure:
-		     - AndroidSigningKeyStore (path to keystore)
-		     - AndroidSigningKeyAlias (key alias)
-		     - AndroidSigningKeyPass (key password)
-		     - AndroidSigningStorePass (keystore password)
-		-->
+		<AndroidSigningKeyStore>C:\keys\govee_new.keystore</AndroidSigningKeyStore>
+		<AndroidSigningKeyAlias>govee</AndroidSigningKeyAlias>
+		<AndroidSigningKeyPass>MyGoveeKey2026</AndroidSigningKeyPass>
+		<AndroidSigningStorePass>MyGoveeKey2026</AndroidSigningStorePass>
 	</PropertyGroup>
 
 	<ItemGroup>
