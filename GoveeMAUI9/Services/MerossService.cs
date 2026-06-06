@@ -168,6 +168,7 @@ public class MerossService : IMerossService
         _mqttClient.DisconnectedAsync += async e =>
         {
             Log($"⚠️ MQTT desconectado: Reason={e.Reason} Exception={e.Exception?.Message}");
+            System.Diagnostics.Debug.WriteLine($"[MerossService] MQTT DisconnectedAsync: {e.Reason}");
             
             // Implementar reconexión con backoff exponencial
             if (_mqttReconnectAttempts < MaxMqttReconnectAttempts)
@@ -175,6 +176,7 @@ public class MerossService : IMerossService
                 _mqttReconnectAttempts++;
                 var delayMs = 3000 * (int)Math.Pow(2, Math.Min(_mqttReconnectAttempts - 1, 3)); // Max backoff: 3s * 2^3 = 24s
                 Log($"🔄 Reconectando MQTT (intento {_mqttReconnectAttempts}/{MaxMqttReconnectAttempts}) en {delayMs}ms...");
+                System.Diagnostics.Debug.WriteLine($"[MerossService] Reconexión MQTT en {delayMs}ms");
                 
                 await Task.Delay(delayMs);
                 try
@@ -184,14 +186,18 @@ public class MerossService : IMerossService
                 catch (Exception ex)
                 {
                     Log($"❌ Reconexión MQTT fallida (intento {_mqttReconnectAttempts}): {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[MerossService] Reconexión MQTT falló: {ex.Message}");
                 }
             }
             else
             {
                 Log($"❌ MQTT: Máximo de reconexiones alcanzado ({MaxMqttReconnectAttempts}). Requiere intervención manual.");
+                System.Diagnostics.Debug.WriteLine($"[MerossService] MQTT max reconexiones alcanzadas");
             }
         };
 
+        // Configuración robusta de MQTT con keep-alive más agresivo
+        // KeepAlive: envía ping cada 30s para detectar desconexiones silenciosas rápidamente
         var options = new MqttClientOptionsBuilder()
             .WithClientId($"app:{_appId}:{_userId}")
             .WithTcpServer(_mqttDomain, MqttPort)
@@ -202,15 +208,17 @@ public class MerossService : IMerossService
                 o.WithIgnoreCertificateRevocationErrors();
             })
             .WithCredentials(_userId, Md5(_userId + _key))
-            .WithKeepAlivePeriod(TimeSpan.FromSeconds(60))
+            .WithKeepAlivePeriod(TimeSpan.FromSeconds(30))  // ⬆️ Reducido de 60s a 30s para detectar desconexiones antes
             .WithCleanSession(true)
+            .WithProtocolVersion(MQTTnet.Formatter.MqttProtocolVersion.V311)  // Versión estable
             .Build();
 
+        System.Diagnostics.Debug.WriteLine($"[MerossService] Conectando MQTT a {_mqttDomain}:{MqttPort}");
         var connectResult = await _mqttClient.ConnectAsync(options);
         Log($"✅ MQTT conectado. CONNACK={connectResult.ResultCode}");
+        System.Diagnostics.Debug.WriteLine($"[MerossService] MQTT conectado exitosamente");
         
-        // Reset de intentos al conectar exitosamente
-        _mqttReconnectAttempts = 0;
+        _mqttReconnectAttempts = 0;  // Reset contador después de conexión exitosa
 
         // Suscribirse a topic de respuestas de la app
         var appTopic = $"/app/{_userId}-{_appId}/subscribe";
