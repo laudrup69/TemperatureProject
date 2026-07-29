@@ -160,13 +160,14 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public void IsManualPlugButtonEnabled_InMonitoringMode_ShouldBeFalse()
+    public void IsManualPlugButtonEnabled_InMonitoringMode_ShouldStayTrue()
     {
-        // Arrange
+        // El botón manual NO debe deshabilitarse por monitorizar: al pulsarlo se
+        // detiene la monitorización y se pasa a modo manual. Deshabilitarlo hacía
+        // que pulsarlo no produjera ningún efecto ni mensaje de log.
         _sut.CurrentMode = OperationMode.Monitoring;
 
-        // Act & Assert
-        _sut.IsManualPlugButtonEnabled.Should().BeFalse();
+        _sut.IsManualPlugButtonEnabled.Should().BeTrue();
     }
 
     [Fact]
@@ -176,6 +177,20 @@ public class MainViewModelTests
         _sut.CurrentMode = OperationMode.Manual;
 
         // Act & Assert
+        _sut.IsManualPlugButtonEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsManualPlugButtonEnabled_ShouldBeReenabledAfterCommandFails()
+    {
+        _sut.CurrentMode = OperationMode.Manual;
+        _monitorMock
+            .Setup(m => m.SetPlugManuallyAsync(It.IsAny<bool>()))
+            .ThrowsAsync(new Exception("enchufe no disponible"));
+
+        await _sut.TogglePlugManuallyCommand.ExecuteAsync(null);
+
+        // Si no se reactivara, un único fallo dejaría el botón muerto para siempre.
         _sut.IsManualPlugButtonEnabled.Should().BeTrue();
     }
 }

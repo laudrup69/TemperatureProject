@@ -8,26 +8,12 @@
         android:supportsRtl="true"
         android:label="Govee Temp Control">
 
-        <!-- Activity principal — única con LAUNCHER -->
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:launchMode="singleTop"
-            android:theme="@style/Maui.SplashTheme"
-            android:configChanges="screenSize|orientation|uiMode|screenLayout|smallestScreenSize|density"
-            tools:node="replace">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <!-- Evitar que la activity de splash de MAUI aparezca como segundo icono -->
-        <activity-alias
-            android:name=".MainActivityAlias"
-            android:targetActivity=".MainActivity"
-            android:exported="false"
-            tools:node="remove" />
+        <!-- La activity principal (con LAUNCHER) la genera el atributo
+             [Activity(MainLauncher = true)] de MainActivity.cs. No declararla
+             también acá: el nombre de clase autogenerado por .NET Android es
+             un hash (crc64...), distinto de ".MainActivity", así que una
+             declaración manual queda como un segundo ícono fantasma sin
+             clase real detrás. -->
 
     </application>
 

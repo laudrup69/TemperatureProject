@@ -36,5 +36,31 @@ Thumbs.db
 *.nupkg
 *.snupkg
 
+# Paquetes de la app — se distribuyen aparte, no engordan el historial
+*.apk
+*.aab
+
 # Local environment
 *.local.json
+
+# Signing credentials — NUNCA en el repo (la plantilla .example sí)
+*.local.props
+!*.local.props.example
+
+# Keystores, por si alguno acaba dentro del árbol del repo por accidente
+*.keystore
+*.jks
+*.p12
+*.pfx
+
+# Copias y respaldos: un govee_new.keystore.bak NO lo pillan las reglas de arriba,
+# porque acaba en .bak y no en .keystore
+*.bak
+*.backup
+*.old
+*.orig
+*.keystore.*
+*.jks.*
+
+# Claude docs (not part of the repo)
+/GoveeMAUI9/.IA-claude/
