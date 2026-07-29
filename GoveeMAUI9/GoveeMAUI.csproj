@@ -13,23 +13,45 @@
 
 		<ApplicationTitle>Govee Temp Control</ApplicationTitle>
 		<ApplicationId>com.personal.goveetempcontrol</ApplicationId>
-		<ApplicationVersion>2</ApplicationVersion>
-		<ApplicationDisplayVersion>2.0.0</ApplicationDisplayVersion>
+		<ApplicationVersion>3</ApplicationVersion>
+		<ApplicationDisplayVersion>2.0.1</ApplicationDisplayVersion>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 	</PropertyGroup>
 
+	<!-- Credenciales de firma. Este fichero está en el repo (público), así que aquí
+	     NUNCA van literales: se resuelven desde signing.local.props, que git ignora.
+	     Copia signing.local.props.example a signing.local.props y rellénalo.
+	     Ver .IA-claude/docs/firma-apk-credenciales.md -->
+	<Import Project="signing.local.props" Condition="Exists('signing.local.props')" />
+
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net9.0-android|AnyCPU'">
 		<AndroidPackageFormat>apk</AndroidPackageFormat>
 		<DebugSymbols>False</DebugSymbols>
 		<AndroidKeyStore>True</AndroidKeyStore>
-		<AndroidSigningKeyStore>C:\keys\govee_new.keystore</AndroidSigningKeyStore>
-		<AndroidSigningKeyAlias>govee</AndroidSigningKeyAlias>
-		<AndroidSigningKeyPass>MyGoveeKey2026</AndroidSigningKeyPass>
-		<AndroidSigningStorePass>MyGoveeKey2026</AndroidSigningStorePass>
+
+		<!-- Respaldo por variables de entorno, para CI o para no depender del fichero
+		     local. Sólo se aplican si signing.local.props no las ha definido ya. -->
+		<AndroidSigningKeyStore Condition="'$(AndroidSigningKeyStore)' == ''">$(GOVEE_SIGNING_KEYSTORE)</AndroidSigningKeyStore>
+		<AndroidSigningKeyAlias Condition="'$(AndroidSigningKeyAlias)' == ''">$(GOVEE_SIGNING_ALIAS)</AndroidSigningKeyAlias>
+		<AndroidSigningKeyPass Condition="'$(AndroidSigningKeyPass)' == ''">$(GOVEE_SIGNING_KEYPASS)</AndroidSigningKeyPass>
+		<AndroidSigningStorePass Condition="'$(AndroidSigningStorePass)' == ''">$(GOVEE_SIGNING_STOREPASS)</AndroidSigningStorePass>
 	</PropertyGroup>
+
+	<!-- Aviso temprano y claro si falta la configuración de firma, en vez de un
+	     error opaco a mitad del empaquetado. _ResolveAndroidSigningKey es el target
+	     del SDK de Android que resuelve la clave, así que sólo salta cuando la firma
+	     importa de verdad; AndroidKeyStore != True significa keystore de depuración
+	     y ahí no hay nada que validar. -->
+	<Target Name="ValidateSigningConfig" BeforeTargets="_ResolveAndroidSigningKey"
+	        Condition="'$(AndroidKeyStore)' == 'True'">
+		<Error Condition="'$(AndroidSigningKeyStore)' == ''"
+		       Text="Falta la configuración de firma. Copia signing.local.props.example a signing.local.props y rellénalo, o define las variables GOVEE_SIGNING_*." />
+		<Error Condition="!Exists('$(AndroidSigningKeyStore)')"
+		       Text="El keystore '$(AndroidSigningKeyStore)' no existe. Revisa la ruta en signing.local.props." />
+	</Target>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.0" />
