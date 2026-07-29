@@ -19,6 +19,7 @@ public class MerossService : IMerossService
     private readonly IPreferencesService _preferences;
     private IMqttClient? _mqttClient;
     private int _mqttReconnectAttempts = 0;
+    private readonly SemaphoreSlim _initGate = new(1, 1);
 
     private string _userId = "";
     private string _key = "";
@@ -58,6 +59,34 @@ public class MerossService : IMerossService
 
         Log($"📡 Conectando MQTT a {_mqttDomain}:{MqttPort}...");
         await ConnectMqttAsync();
+    }
+
+    /// <summary>
+    /// Inicializa la sesión Meross sólo si aún no hay una resuelta. Idempotente y
+    /// serializado, para que cualquier ruta que necesite hablar con el enchufe
+    /// (el bucle de monitorización o el botón manual) pueda llamarla sin riesgo
+    /// de doble login.
+    /// </summary>
+    private async Task EnsureInitializedAsync()
+    {
+        // Sin UUID no hay nada que firmar ni a quién publicar: ni HTTP local ni MQTT
+        // funcionan. Es la señal de que InitializeAsync todavía no corrió.
+        if (!string.IsNullOrEmpty(_deviceUUID))
+            return;
+
+        await _initGate.WaitAsync();
+        try
+        {
+            if (!string.IsNullOrEmpty(_deviceUUID))
+                return;
+
+            Log("ℹ️ Sesión Meross no inicializada. Inicializando ahora...");
+            await InitializeAsync();
+        }
+        finally
+        {
+            _initGate.Release();
+        }
     }
 
     // ── Login ────────────────────────────────────────────────────────────────
@@ -250,6 +279,10 @@ public class MerossService : IMerossService
     public async Task SetPlugAsync(bool turnOn)
     {
         Log($"🔌 SetPlugAsync({(turnOn ? "ON" : "OFF")}) iniciado");
+
+        // El botón manual puede ser lo primero que se pulse tras abrir la app, sin
+        // que StartAsync() haya inicializado nada. Garantizamos la sesión aquí.
+        await EnsureInitializedAsync();
 
         // Estrategia 1: HTTP local (más fiable si estamos en la misma red)
         if (!string.IsNullOrWhiteSpace(_deviceInnerIp))

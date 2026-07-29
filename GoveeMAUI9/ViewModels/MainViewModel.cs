@@ -28,6 +28,8 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _manualPlugButtonText = "🔌 Encender enchufe manualmente";
     [ObservableProperty] private string _manualPlugButtonColor = "#5A4FD6";
     [ObservableProperty] private OperationMode _currentMode = OperationMode.Manual;
+    // Sólo se desactiva mientras hay una orden ON/OFF en vuelo (evita doble pulsación),
+    // NO según el modo: el botón manual debe poder pulsarse también monitorizando.
     [ObservableProperty] private bool _isManualPlugButtonEnabled = true;
 
     public MainViewModel(IMonitorService monitor, IPreferencesService preferences)
@@ -56,8 +58,7 @@ public partial class MainViewModel : ObservableObject
                 _autoRetryTokenSource?.Cancel();
                 IsRunning = false;
                 CurrentMode = OperationMode.Manual;
-                IsManualPlugButtonEnabled = true;
-                
+
                 // Apagar el enchufe al detener monitoreo
                 try
                 {
@@ -106,7 +107,6 @@ public partial class MainViewModel : ObservableObject
                 StatusColor = Color.FromArgb("#F7C26A");
                 IsRunning = true;
                 CurrentMode = OperationMode.Monitoring;
-                IsManualPlugButtonEnabled = false;
                 _wasRunningWhenError = false;
                 _autoRetryCount = 0;
                 _autoRetryTokenSource?.Cancel();
@@ -115,7 +115,7 @@ public partial class MainViewModel : ObservableObject
 
                 StatusText = "Monitorizando";
                 StatusColor = Color.FromArgb("#4CAF50");
-                AddLog("✅ Monitorización iniciada. Controles manuales deshabilitados.");
+                AddLog("✅ Monitorización iniciada.");
             }
         }
         catch (Exception ex)
@@ -123,7 +123,6 @@ public partial class MainViewModel : ObservableObject
             AddLog($"❌ {ex.Message}");
             IsRunning = false;
             CurrentMode = OperationMode.Manual;
-            IsManualPlugButtonEnabled = true;
             StatusText = "Error — revisa los Ajustes";
             StatusColor = Colors.Red;
         }
@@ -139,9 +138,13 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task TogglePlugManuallyAsync()
     {
+        // Bloquea el botón sólo durante la orden: una orden por MQTT puede tardar
+        // varios segundos y una segunda pulsación dejaría PlugOn desincronizado.
+        IsManualPlugButtonEnabled = false;
         try
         {
-            // Si estamos monitoreando, detenemos la monitorización primero
+            // Si estamos monitoreando, detenemos la monitorización primero: el bucle
+            // volvería a imponer su criterio de temperatura sobre lo que pida el usuario.
             if (CurrentMode == OperationMode.Monitoring)
             {
                 AddLog("⚠️ Deteniendo monitorización para cambiar a control manual...");
@@ -150,7 +153,6 @@ public partial class MainViewModel : ObservableObject
                 _autoRetryTokenSource?.Cancel();
                 IsRunning = false;
                 CurrentMode = OperationMode.Manual;
-                IsManualPlugButtonEnabled = true;
                 StatusText = "Modo manual";
                 StatusColor = Colors.Gray;
                 AddLog("✅ Monitorización detenida. Control manual activado.");
@@ -166,6 +168,10 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             AddLog($"❌ Error control manual: {ex.Message}");
+        }
+        finally
+        {
+            IsManualPlugButtonEnabled = true;
         }
     }
 
@@ -223,7 +229,6 @@ public partial class MainViewModel : ObservableObject
             StatusColor = Colors.Red;
             IsRunning = false;
             CurrentMode = OperationMode.Manual;
-            IsManualPlugButtonEnabled = true;
             _wasRunningWhenError = true;
             _autoRetryCount = 0;
             
@@ -289,11 +294,5 @@ public partial class MainViewModel : ObservableObject
     {
         ManualPlugButtonText = value ? "⭕ Apagar enchufe manualmente" : "🔌 Encender enchufe manualmente";
         ManualPlugButtonColor = value ? "#F44336" : "#5A4FD6";
-    }
-
-    // Actualizar IsManualPlugButtonEnabled cuando cambie el modo
-    partial void OnCurrentModeChanged(OperationMode value)
-    {
-        IsManualPlugButtonEnabled = (value == OperationMode.Manual);
     }
 }
