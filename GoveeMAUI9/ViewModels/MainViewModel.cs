@@ -34,6 +34,22 @@ public partial class MainViewModel : ObservableObject
     // NO según el modo: el botón manual debe poder pulsarse también monitorizando.
     [ObservableProperty] private bool _isManualPlugButtonEnabled = true;
 
+    /// <summary>Versión instalada, para saber qué release se está probando.</summary>
+    public string AppVersionText { get; } = $"Versión {GetAppVersion()}";
+
+    private static string GetAppVersion()
+    {
+        try
+        {
+            return AppInfo.Current.VersionString;
+        }
+        catch (Exception)
+        {
+            // En tests o sin plataforma MAUI no hay AppInfo
+            return "desconocida";
+        }
+    }
+
     /// <summary>Cuándo actúa el monitor: el margen sobre el umbral no es evidente.</summary>
     public string ControlBandText =>
         $"Enciende por debajo de {Threshold:F1} °C · Apaga desde {Threshold + HysteresisMargin:F1} °C";
@@ -52,6 +68,7 @@ public partial class MainViewModel : ObservableObject
         _monitor.OnError += OnErrorReceived;
         _monitor.OnStoppedByExternalChange += OnStoppedByExternalChange;
 
+        AddLog($"📱 Govee Temp Control · {AppVersionText}");
         RestoreMonitoringState();
     }
 

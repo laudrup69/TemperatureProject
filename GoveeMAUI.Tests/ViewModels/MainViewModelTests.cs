@@ -81,6 +81,13 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public void Constructor_ShouldShowAppVersion()
+    {
+        _sut.AppVersionText.Should().StartWith("Versión ");
+        _sut.Log.Should().Contain(_sut.AppVersionText);
+    }
+
+    [Fact]
     public void StoppedByExternalChange_ShouldSwitchToManualMode()
     {
         // Arrange

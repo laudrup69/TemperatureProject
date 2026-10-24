@@ -128,6 +128,10 @@
                 </VerticalStackLayout>
             </Frame>
 
+            <!-- Versión instalada -->
+            <Label Text="{Binding AppVersionText}" TextColor="#9999BB" FontSize="12"
+                   HorizontalOptions="Center" Margin="0,0,0,8" />
+
         </VerticalStackLayout>
     </ScrollView>
 
