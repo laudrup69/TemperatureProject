@@ -13,8 +13,8 @@
 
 		<ApplicationTitle>Govee Temp Control</ApplicationTitle>
 		<ApplicationId>com.personal.goveetempcontrol</ApplicationId>
-		<ApplicationVersion>3</ApplicationVersion>
-		<ApplicationDisplayVersion>2.0.1</ApplicationDisplayVersion>
+		<ApplicationVersion>4</ApplicationVersion>
+		<ApplicationDisplayVersion>2.1.0</ApplicationDisplayVersion>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
@@ -78,6 +78,11 @@
 		<MauiXaml Update="App.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Los tests prueban el parseo de respuestas Meross, que es internal -->
+		<InternalsVisibleTo Include="GoveeMAUI.Tests" />
 	</ItemGroup>
 
 </Project>

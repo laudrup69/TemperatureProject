@@ -16,6 +16,11 @@ public static class SettingsKeys
     public const string MerossDevice = "meross_device";
     public const string Threshold = "threshold";
     public const string Interval = "interval_seconds";
+    public const string HysteresisMargin = "hysteresis_margin";
+    public const string FailsafeMinutes = "failsafe_minutes";
+    // 1 = el usuario dejó la monitorización activada; se restaura al reabrir la app,
+    // si Android cierra el proceso o al reiniciar el móvil.
+    public const string MonitoringEnabled = "monitoring_enabled";
 }
 
 // ── Abstracción de Preferences para testabilidad ─────────────────────────────
@@ -81,7 +86,10 @@ public interface IMerossService : IAsyncDisposable
     bool IsConnected { get; }
     event Action<string>? OnLog;
     Task InitializeAsync();
-    Task SetPlugAsync(bool on);
+    /// <summary>Devuelve true sólo si el enchufe confirmó la orden.</summary>
+    Task<bool> SetPlugAsync(bool on);
+    /// <summary>Estado real del enchufe, o null si no se pudo consultar.</summary>
+    Task<bool?> GetPlugStateAsync();
     Task DisconnectAsync();
 }
 
@@ -91,6 +99,10 @@ public interface IMerossService : IAsyncDisposable
 public interface IMonitorService
 {
     bool IsRunning { get; }
+    /// <summary>Último estado conocido del enchufe (null = desconocido).</summary>
+    bool? PlugState { get; }
+    /// <summary>Última lectura válida, para pintar la UI al reabrir la app.</summary>
+    SensorReading? LastReading { get; }
     event Action<SensorReading>? OnReadingUpdated;
     event Action<bool>? OnPlugStateChanged;
     event Action<string>? OnLogMessage;
@@ -98,6 +110,29 @@ public interface IMonitorService
     Task StartAsync();
     void Stop();
     Task SetPlugManuallyAsync(bool on);
+}
+
+/// <summary>
+/// Mantiene viva la app mientras se monitoriza (en Android, un servicio en primer
+/// plano); sin él el sistema congela o cierra la app con la pantalla apagada.
+/// </summary>
+public interface IKeepAliveService
+{
+    void Start();
+    void Stop();
+    /// <summary>
+    /// Pide al usuario que la app quede fuera de la optimización de batería, si no lo
+    /// está ya; sin eso algunos fabricantes la cierran igualmente en segundo plano.
+    /// </summary>
+    void RequestBackgroundExemption();
+}
+
+/// <summary>Para plataformas que no necesitan nada para seguir en marcha.</summary>
+public class NoOpKeepAliveService : IKeepAliveService
+{
+    public void Start() { }
+    public void Stop() { }
+    public void RequestBackgroundExemption() { }
 }
 
 // ── Estados de operación ──────────────────────────────────────────────────────

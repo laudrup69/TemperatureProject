@@ -88,7 +88,7 @@
                                 BackgroundColor="#5A4FD6" TextColor="White"
                                 CornerRadius="10" WidthRequest="50" HeightRequest="44" />
                     </HorizontalStackLayout>
-                    <Label Text="El enchufe se enciende cuando la temperatura baja de este valor."
+                    <Label Text="{Binding ControlBandText}"
                            TextColor="#9999BB" FontSize="12" />
                 </VerticalStackLayout>
             </Frame>

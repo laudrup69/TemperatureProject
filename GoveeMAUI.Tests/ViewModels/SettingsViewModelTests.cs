@@ -253,4 +253,58 @@ public class SettingsViewModelTests
         // Act & Assert
         _sut.DeviceList.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Save_ShouldPersistHysteresisMargin()
+    {
+        _sut.HysteresisMargin = 0.5;
+
+        _sut.SaveCommand.Execute(null);
+
+        _preferences.Get(SettingsKeys.HysteresisMargin, -1.0).Should().Be(0.5);
+    }
+
+    [Fact]
+    public void Save_NegativeHysteresisMargin_ShouldBeClampedToZero()
+    {
+        _sut.HysteresisMargin = -2;
+
+        _sut.SaveCommand.Execute(null);
+
+        _sut.HysteresisMargin.Should().Be(0);
+        _preferences.Get(SettingsKeys.HysteresisMargin, -1.0).Should().Be(0);
+    }
+
+    [Fact]
+    public void Constructor_WithoutSavedMargin_ShouldUseDefault()
+    {
+        _sut.HysteresisMargin.Should().Be(MonitorService.DefaultHysteresisMargin);
+    }
+
+    [Fact]
+    public void Save_ShouldPersistFailsafeMinutes()
+    {
+        _sut.FailsafeMinutes = 45;
+
+        _sut.SaveCommand.Execute(null);
+
+        _preferences.Get(SettingsKeys.FailsafeMinutes, -1).Should().Be(45);
+    }
+
+    [Fact]
+    public void Save_NegativeFailsafeMinutes_ShouldBeClampedToZero()
+    {
+        _sut.FailsafeMinutes = -5;
+
+        _sut.SaveCommand.Execute(null);
+
+        _sut.FailsafeMinutes.Should().Be(0);
+        _preferences.Get(SettingsKeys.FailsafeMinutes, -1).Should().Be(0);
+    }
+
+    [Fact]
+    public void Constructor_WithoutSavedFailsafe_ShouldUse30Minutes()
+    {
+        _sut.FailsafeMinutes.Should().Be(30);
+    }
 }

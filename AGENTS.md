@@ -20,7 +20,7 @@ Un proyecto .NET 9 MAUI multiplataforma (Android + Windows) que monitoriza tempe
 Toda inyección de dependencias en [MauiProgram.cs](MauiProgram.cs):
 - **Services**: GoveeService, MerossService, MonitorService (Singletons)
 - **ViewModels**: MainViewModel, SettingsViewModel (Singletons)
-- **Views**: MainPage, SettingsPage (Singletons)
+- **Views**: MainPage, SettingsPage (Transient: Android recrea la ventana al reabrir la app, ver `App.CreateWindow`)
 
 Los ViewModels reciben servicios vía constructor:
 ```csharp
@@ -35,7 +35,9 @@ public class MainViewModel(MonitorService monitor) { }
 | [MerossService](Services/MerossService.cs) | MQTT + REST | Controla enchufe WiFi inteligente |
 | [MonitorService](Services/MonitorService.cs) | Async loop | Orquesta lectura cíclica + lógica umbral |
 
-**Flujo monitoreo**: `MonitorService.StartAsync()` → lee Govee cada intervalo → aplica histéresis → controla Meross vía MQTT
+**Flujo monitoreo**: `MonitorService.StartAsync()` → lee Govee cada intervalo → aplica histéresis → controla Meross (HTTP local o MQTT, con ACK)
+
+**Monitorización en segundo plano**: la monitorización no depende de la UI. `StartAsync()` guarda `SettingsKeys.MonitoringEnabled = 1` y arranca `IKeepAliveService`; `Stop()` lo pone a 0. En Android, `MonitorForegroundService` (START_STICKY) y `BootReceiver` la restauran si el sistema mata el proceso, al reiniciar o al actualizar la app; `MainViewModel` refleja el estado al abrirse. Los errores de red no detienen el bucle (reintenta cada intervalo); sólo se para si Govee no tiene ningún sensor. **Apagado de seguridad**: sin lecturas válidas (sensor online) durante `SettingsKeys.FailsafeMinutes` (por defecto 30, 0 = desactivado) se apaga el enchufe hasta que vuelvan; el plazo cuenta desde el arranque. El enchufe controla una caldera.
 
 ## Convenciones de Código
 
@@ -64,7 +66,7 @@ public class MainViewModel(MonitorService monitor) { }
 ### Issues Técnicos Frecuentes
 
 1. **Sensor offline**: `ReadSensorReading()` valida rango -40 a 80°C, ignora nulos.
-2. **Histéresis**: ON si T < umbral; OFF si T ≥ (umbral + 1°C) → previene oscilaciones.
+2. **Histéresis**: ON si T < umbral; OFF si T ≥ (umbral + margen) → previene oscilaciones. Margen configurable en Ajustes (`SettingsKeys.HysteresisMargin`, por defecto 0,5 °C). El estado del enchufe se lee de Meross al arrancar; si es desconocido o una orden no se confirma, la orden se reenvía en la siguiente lectura.
 3. **MQTT desconexiones**: Reconnect automático cada 3s + resubscripción.
 4. **Control local primero**: Intenta IP interna HTTP → fallback a MQTT cloud.
 5. **Certificados**: TLS ignora errores de certificado (verificar si es intencional).
@@ -82,7 +84,7 @@ public class MainViewModel(MonitorService monitor) { }
 | Android | [Platforms/Android/](Platforms/Android/) | INTERNET + ACCESS_NETWORK_STATE en [AndroidManifest.xml](Platforms/Android/AndroidManifest.xml) |
 | Windows | [Platforms/Windows/](Platforms/Windows/) | Package.appxmanifest (NO Store deployment) |
 
-Ambas comparten código — sin conditional compilation activa. Al agregar permisos/funcionalidades, editar ambos manifests.
+Ambas comparten código. Única compilación condicional: el registro de `IKeepAliveService` en MauiProgram.cs (Android: `Platforms/Android/AndroidKeepAliveService.cs`, `MonitorForegroundService.cs`, `BootReceiver.cs`). Al agregar permisos/funcionalidades, editar ambos manifests.
 
 ## Archivos Clave que Ejemplifican Patrones
 

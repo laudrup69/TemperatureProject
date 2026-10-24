@@ -10,6 +10,7 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly IMonitorService _monitor;
     private readonly IPreferencesService _preferences;
+    private readonly IKeepAliveService _keepAlive;
     private CancellationTokenSource? _autoRetryTokenSource;
     private bool _wasRunningWhenError = false;
     private int _autoRetryCount = 0;
@@ -24,7 +25,8 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private Color _statusColor = Colors.Gray;
     [ObservableProperty] private string _log = "";
     [ObservableProperty] private string _lastUpdate = "Sin lecturas aún";
-    [ObservableProperty] private double _threshold;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ControlBandText))] private double _threshold;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ControlBandText))] private double _hysteresisMargin;
     [ObservableProperty] private string _manualPlugButtonText = "🔌 Encender enchufe manualmente";
     [ObservableProperty] private string _manualPlugButtonColor = "#5A4FD6";
     [ObservableProperty] private OperationMode _currentMode = OperationMode.Manual;
@@ -32,16 +34,51 @@ public partial class MainViewModel : ObservableObject
     // NO según el modo: el botón manual debe poder pulsarse también monitorizando.
     [ObservableProperty] private bool _isManualPlugButtonEnabled = true;
 
-    public MainViewModel(IMonitorService monitor, IPreferencesService preferences)
+    /// <summary>Cuándo actúa el monitor: el margen sobre el umbral no es evidente.</summary>
+    public string ControlBandText =>
+        $"Enciende por debajo de {Threshold:F1} °C · Apaga desde {Threshold + HysteresisMargin:F1} °C";
+
+    public MainViewModel(IMonitorService monitor, IPreferencesService preferences, IKeepAliveService? keepAlive = null)
     {
         _monitor = monitor;
         _preferences = preferences;
+        _keepAlive = keepAlive ?? new NoOpKeepAliveService();
         _threshold = _preferences.Get(SettingsKeys.Threshold, 18.0);
+        _hysteresisMargin = _preferences.Get(SettingsKeys.HysteresisMargin, MonitorService.DefaultHysteresisMargin);
 
         _monitor.OnReadingUpdated += OnReading;
         _monitor.OnPlugStateChanged += OnPlugChanged;
         _monitor.OnLogMessage += AddLog;
         _monitor.OnError += OnErrorReceived;
+
+        RestoreMonitoringState();
+    }
+
+    /// <summary>
+    /// La monitorización no depende de esta pantalla: sigue con la app cerrada desde
+    /// recientes, y el servicio de Android la restaura si el sistema cierra el proceso
+    /// o se reinicia el móvil. Al abrir la app se refleja ese estado y, si debía estar
+    /// activa y no lo está (p. ej. en Windows al volver a abrir), se reanuda.
+    /// </summary>
+    private void RestoreMonitoringState()
+    {
+        if (!_monitor.IsRunning && _preferences.Get(SettingsKeys.MonitoringEnabled, 0) != 1)
+            return;
+
+        CurrentMode = OperationMode.Monitoring;
+        IsRunning = true;
+        StatusText = "Monitorizando";
+        StatusColor = Color.FromArgb("#4CAF50");
+        if (_monitor.PlugState is bool plugOn)
+            PlugOn = plugOn;
+        if (_monitor.LastReading is { } reading)
+        {
+            Temperature = $"{reading.Temperature:F1}";
+            Humidity = $"{reading.Humidity:F1}";
+        }
+
+        if (!_monitor.IsRunning)
+            _ = _monitor.StartAsync();
     }
 
     [RelayCommand]
@@ -111,6 +148,7 @@ public partial class MainViewModel : ObservableObject
                 _autoRetryCount = 0;
                 _autoRetryTokenSource?.Cancel();
 
+                RequestBackgroundExemption();
                 await _monitor.StartAsync();
 
                 StatusText = "Monitorizando";
@@ -125,6 +163,28 @@ public partial class MainViewModel : ObservableObject
             CurrentMode = OperationMode.Manual;
             StatusText = "Error — revisa los Ajustes";
             StatusColor = Colors.Red;
+        }
+    }
+
+    /// <summary>
+    /// Recarga umbral y margen de Preferences: se pueden haber cambiado en Ajustes, y
+    /// sin esto al iniciar la monitorización se volvería a guardar el umbral antiguo.
+    /// </summary>
+    public void ReloadSettings()
+    {
+        Threshold = _preferences.Get(SettingsKeys.Threshold, 18.0);
+        HysteresisMargin = _preferences.Get(SettingsKeys.HysteresisMargin, MonitorService.DefaultHysteresisMargin);
+    }
+
+    private void RequestBackgroundExemption()
+    {
+        try
+        {
+            _keepAlive.RequestBackgroundExemption();
+        }
+        catch (Exception ex)
+        {
+            AddLog($"⚠️ No se pudo pedir el permiso de batería: {ex.Message}");
         }
     }
 
