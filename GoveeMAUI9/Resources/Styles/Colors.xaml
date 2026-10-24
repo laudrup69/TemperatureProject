@@ -1,16 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!-- Paleta de la app: tema claro inspirado en iOS, con acento naranja (calor).
+     Los colores de estado que asigna MainViewModel usan los mismos tonos. -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
-    <Color x:Key="Background">#1E1E2E</Color>
-    <Color x:Key="Surface">#2A2A3E</Color>
-    <Color x:Key="Primary">#7C6AF7</Color>
-    <Color x:Key="PrimaryDark">#5A4FD6</Color>
-    <Color x:Key="Accent">#F7C26A</Color>
-    <Color x:Key="Success">#4CAF50</Color>
-    <Color x:Key="Danger">#F44336</Color>
-    <Color x:Key="TextPrimary">#FFFFFF</Color>
-    <Color x:Key="TextSecondary">#9999BB</Color>
-    <Color x:Key="CardBg">#252538</Color>
+    <Color x:Key="PageBackground">#F2F2F7</Color>
+    <Color x:Key="CardBackground">#FFFFFF</Color>
+    <Color x:Key="FieldBackground">#F2F2F7</Color>
+    <Color x:Key="Separator">#E5E5EA</Color>
+
+    <Color x:Key="TextPrimary">#1C1C1E</Color>
+    <Color x:Key="TextSecondary">#8E8E93</Color>
+
+    <Color x:Key="Accent">#FF6B2C</Color>
+    <Color x:Key="AccentSoft">#FFF1EA</Color>
+    <Color x:Key="Success">#34C759</Color>
+    <Color x:Key="Danger">#FF3B30</Color>
+    <Color x:Key="Warning">#C93400</Color>
 
 </ResourceDictionary>

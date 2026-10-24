@@ -18,6 +18,8 @@
 		     Mantener aquí la última publicada para no confundir al probar en local. -->
 		<ApplicationVersion>20200</ApplicationVersion>
 		<ApplicationDisplayVersion>2.2.0</ApplicationDisplayVersion>
+		<!-- En Windows sin empaquetar, AppInfo lee la versión del ensamblado -->
+		<Version>$(ApplicationDisplayVersion)</Version>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
@@ -66,8 +68,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#1E1E2E" />
-		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#1E1E2E" BaseSize="128,128" />
+		<!-- Icono adaptativo: fondo naranja + caldera en primer plano (Android recorta la forma) -->
+		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#FF6B2C" />
+		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#F2F2F7" BaseSize="128,128" />
 		<MauiFont Include="Resources\Fonts\*" />
 	</ItemGroup>
 

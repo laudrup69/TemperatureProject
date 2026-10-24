@@ -54,7 +54,7 @@ public class MainViewModel(MonitorService monitor) { }
 
 **Binding MVVM**: Usa MVVM Toolkit — `[ObservableProperty]` (genera INotifyPropertyChanged) y `[RelayCommand]` para async commands.
 
-**UI Styling**: Dark theme (fondo #1E1E2E, cards #252538) definido en [Resources/Styles/Styles.xaml](Resources/Styles/Styles.xaml).
+**UI Styling**: Tema claro de inspiración iOS (fondo #F2F2F7, tarjetas blancas, acento naranja #FF6B2C). Paleta en [Resources/Styles/Colors.xaml](GoveeMAUI9/Resources/Styles/Colors.xaml) y estilos (`Card`, `Field`, `PrimaryButton`...) en [Styles.xaml](GoveeMAUI9/Resources/Styles/Styles.xaml), ambos fusionados en `App.xaml`; usar `{StaticResource ...}` en vez de colores literales. Los colores de estado de `MainViewModel` repiten esos tonos. Icono adaptativo: `appicon.svg` (fondo) + `appiconfg.svg` (caldera).
 
 ## Gotchas & Configuración Requerida
 
@@ -98,7 +98,7 @@ Ambas comparten código. Única compilación condicional: el registro de `IKeepA
 - **[MerossService.cs](Services/MerossService.cs)**: HMAC-MD5 signing, dual strategy (local HTTP + cloud MQTT)
 - **[MonitorService.cs](Services/MonitorService.cs)**: Async loop con histéresis, event aggregation
 - **[Models.cs](Models/Models.cs)**: DTOs, JSON serialization, type-safe settings keys
-- **[MainPage.xaml](Views/MainPage.xaml)**: Dark theme, data triggers, binding converters
+- **[MainPage.xaml](Views/MainPage.xaml)**: Tema claro, data triggers, cabecera propia (sin barra de navegación)
 
 ## Estructura del Repositorio
 

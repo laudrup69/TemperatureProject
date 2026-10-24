@@ -181,7 +181,16 @@ public class MainViewModelTests
         _sut.CurrentMode = OperationMode.Manual;
 
         // Act & Assert
-        _sut.ManualPlugButtonText.Should().Contain("🔌");
+        _sut.ManualPlugButtonText.Should().Be("Encender caldera manualmente");
+    }
+
+    [Fact]
+    public void ManualPlugButton_WhenPlugTurnsOn_ShouldOfferTurningOff()
+    {
+        _sut.PlugOn = true;
+
+        _sut.ManualPlugButtonText.Should().Be("Apagar caldera manualmente");
+        _sut.ManualPlugButtonTextColor.Should().Be("#FF3B30");
     }
 
     [Fact]

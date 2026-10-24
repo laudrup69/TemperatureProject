@@ -17,18 +17,29 @@ public partial class MainViewModel : ObservableObject
     private const int MaxAutoRetries = 3;
     private const int RetryDelaySeconds = 10;
 
+    // Colores de estado: mismos tonos que Resources/Styles/Colors.xaml (tema claro).
+    private static readonly Color MonitoringColor = Color.FromArgb("#248A3D");
+    private static readonly Color ConnectingColor = Color.FromArgb("#C93400");
+    private static readonly Color IdleColor = Color.FromArgb("#8E8E93");
+    private static readonly Color ErrorColor = Color.FromArgb("#FF3B30");
+    private const string Accent = "#FF6B2C";
+    private const string AccentSoft = "#FFF1EA";
+    private const string Danger = "#FF3B30";
+    private const string DangerSoft = "#FFEBEA";
+
     [ObservableProperty] private string _temperature = "--.-";
     [ObservableProperty] private string _humidity = "--.-";
     [ObservableProperty] private bool _plugOn = false;
     [ObservableProperty] private bool _isRunning = false;
     [ObservableProperty] private string _statusText = "Detenido";
-    [ObservableProperty] private Color _statusColor = Colors.Gray;
+    [ObservableProperty] private Color _statusColor = IdleColor;
     [ObservableProperty] private string _log = "";
     [ObservableProperty] private string _lastUpdate = "Sin lecturas aún";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ControlBandText))] private double _threshold;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ControlBandText))] private double _hysteresisMargin;
-    [ObservableProperty] private string _manualPlugButtonText = "🔌 Encender enchufe manualmente";
-    [ObservableProperty] private string _manualPlugButtonColor = "#5A4FD6";
+    [ObservableProperty] private string _manualPlugButtonText = "Encender caldera manualmente";
+    [ObservableProperty] private string _manualPlugButtonColor = AccentSoft;
+    [ObservableProperty] private string _manualPlugButtonTextColor = Accent;
     [ObservableProperty] private OperationMode _currentMode = OperationMode.Manual;
     // Sólo se desactiva mientras hay una orden ON/OFF en vuelo (evita doble pulsación),
     // NO según el modo: el botón manual debe poder pulsarse también monitorizando.
@@ -86,7 +97,7 @@ public partial class MainViewModel : ObservableObject
         CurrentMode = OperationMode.Monitoring;
         IsRunning = true;
         StatusText = "Monitorizando";
-        StatusColor = Color.FromArgb("#4CAF50");
+        StatusColor = MonitoringColor;
         if (_monitor.PlugState is bool plugOn)
             PlugOn = plugOn;
         if (_monitor.LastReading is { } reading)
@@ -126,7 +137,7 @@ public partial class MainViewModel : ObservableObject
                 }
                 
                 StatusText = "Modo manual";
-                StatusColor = Colors.Gray;
+                StatusColor = IdleColor;
                 AddLog("✅ Monitorización detenida. Modo manual activo.");
             }
             else
@@ -159,7 +170,7 @@ public partial class MainViewModel : ObservableObject
                 }
 
                 StatusText = "Conectando...";
-                StatusColor = Color.FromArgb("#F7C26A");
+                StatusColor = ConnectingColor;
                 IsRunning = true;
                 CurrentMode = OperationMode.Monitoring;
                 _wasRunningWhenError = false;
@@ -170,7 +181,7 @@ public partial class MainViewModel : ObservableObject
                 await _monitor.StartAsync();
 
                 StatusText = "Monitorizando";
-                StatusColor = Color.FromArgb("#4CAF50");
+                StatusColor = MonitoringColor;
                 AddLog("✅ Monitorización iniciada.");
             }
         }
@@ -180,7 +191,7 @@ public partial class MainViewModel : ObservableObject
             IsRunning = false;
             CurrentMode = OperationMode.Manual;
             StatusText = "Error — revisa los Ajustes";
-            StatusColor = Colors.Red;
+            StatusColor = ErrorColor;
         }
     }
 
@@ -232,7 +243,7 @@ public partial class MainViewModel : ObservableObject
                 IsRunning = false;
                 CurrentMode = OperationMode.Manual;
                 StatusText = "Modo manual";
-                StatusColor = Colors.Gray;
+                StatusColor = IdleColor;
                 AddLog("✅ Monitorización detenida. Control manual activado.");
             }
 
@@ -312,7 +323,7 @@ public partial class MainViewModel : ObservableObject
             CurrentMode = OperationMode.Manual;
             PlugOn = plugOn;
             StatusText = "Modo manual (cambio desde Meross)";
-            StatusColor = Colors.Gray;
+            StatusColor = IdleColor;
         }
 
         try
@@ -332,7 +343,7 @@ public partial class MainViewModel : ObservableObject
         MainThread.BeginInvokeOnMainThread(() =>
         {
             StatusText = "Error";
-            StatusColor = Colors.Red;
+            StatusColor = ErrorColor;
             IsRunning = false;
             CurrentMode = OperationMode.Manual;
             _wasRunningWhenError = true;
@@ -398,7 +409,8 @@ public partial class MainViewModel : ObservableObject
     // ya sea por el botón manual o por el monitor de Govee.
     partial void OnPlugOnChanged(bool value)
     {
-        ManualPlugButtonText = value ? "⭕ Apagar enchufe manualmente" : "🔌 Encender enchufe manualmente";
-        ManualPlugButtonColor = value ? "#F44336" : "#5A4FD6";
+        ManualPlugButtonText = value ? "Apagar caldera manualmente" : "Encender caldera manualmente";
+        ManualPlugButtonColor = value ? DangerSoft : AccentSoft;
+        ManualPlugButtonTextColor = value ? Danger : Accent;
     }
 }

@@ -20,8 +20,9 @@ public partial class App : Application
     {
         var navPage = new NavigationPage(_services.GetRequiredService<MainPage>())
         {
-            BarBackgroundColor = Color.FromArgb("#1E1E2E"),
-            BarTextColor       = Colors.White
+            // Barra clara como el fondo (sólo se ve en Ajustes; la principal la oculta)
+            BarBackgroundColor = Color.FromArgb("#F2F2F7"),
+            BarTextColor       = Color.FromArgb("#1C1C1E")
         };
 
         return new Window(navPage);
