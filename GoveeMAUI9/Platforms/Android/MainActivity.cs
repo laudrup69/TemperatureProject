@@ -18,6 +18,11 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnCreate(savedInstanceState);
 
+        // Fondo claro: iconos oscuros en la barra de estado para que se vean.
+        if (Window != null)
+            AndroidX.Core.View.WindowCompat.GetInsetsController(Window, Window.DecorView)
+                .AppearanceLightStatusBars = true;
+
         // Android 13+: sin este permiso la monitorización en segundo plano funciona
         // igual, pero no se ve la notificación que avisa de que está activa.
         if (OperatingSystem.IsAndroidVersionAtLeast(33)

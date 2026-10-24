@@ -4,129 +4,130 @@
              xmlns:vm="clr-namespace:GoveeMAUI.ViewModels"
              x:Class="GoveeMAUI.Views.MainPage"
              x:DataType="vm:MainViewModel"
-             Title="🌡️ Govee Temp Control"
-             BackgroundColor="#1E1E2E">
-
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="⚙️ Ajustes" Clicked="OnSettingsClicked" />
-    </ContentPage.ToolbarItems>
+             Title="Calefacción"
+             NavigationPage.HasNavigationBar="False">
 
     <ScrollView>
-        <VerticalStackLayout Padding="16" Spacing="14">
+        <VerticalStackLayout Padding="16,12,16,24" Spacing="14">
+
+            <!-- Cabecera: título grande a la izquierda, como en iOS -->
+            <Grid ColumnDefinitions="*,Auto" Margin="4,8,0,0">
+                <Label Text="Calefacción" FontSize="32" FontAttributes="Bold" VerticalOptions="End" />
+                <Button Grid.Column="1" Text="Ajustes" Style="{StaticResource LinkButton}"
+                        VerticalOptions="End" Clicked="OnSettingsClicked" />
+            </Grid>
 
             <!-- Estado -->
-            <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
-                <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
-                    <Ellipse WidthRequest="12" HeightRequest="12" VerticalOptions="Center"
+            <Border BackgroundColor="{StaticResource CardBackground}" StrokeThickness="0"
+                    StrokeShape="RoundRectangle 16" Padding="12,6" HorizontalOptions="Start">
+                <HorizontalStackLayout Spacing="8">
+                    <Ellipse WidthRequest="8" HeightRequest="8" VerticalOptions="Center"
                              Fill="{Binding StatusColor}" />
-                    <Label Text="{Binding StatusText}"
-                           TextColor="{Binding StatusColor}"
-                           FontSize="15" FontAttributes="Bold" VerticalOptions="Center" />
+                    <Label Text="{Binding StatusText}" TextColor="{Binding StatusColor}"
+                           FontSize="14" FontAttributes="Bold" VerticalOptions="Center" />
                 </HorizontalStackLayout>
-            </Frame>
+            </Border>
 
-            <!-- Temperatura -->
-            <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
-                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
-                    <Label Text="TEMPERATURA" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5"
-                           HorizontalOptions="Center" />
-                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="2">
-                        <Label Text="{Binding Temperature}"
-                               TextColor="White" FontSize="56" FontAttributes="Bold" />
-                        <Label Text="°C" FontSize="26" FontAttributes="Bold" TextColor="#9999BB"
-                               VerticalOptions="End" Margin="0,0,0,10" />
-                    </HorizontalStackLayout>
-                    <Label Text="{Binding LastUpdate}" TextColor="#9999BB" FontSize="12"
-                           HorizontalOptions="Center" />
+            <!-- Temperatura y humedad -->
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout>
+                            <Label Text="TEMPERATURA" Style="{StaticResource SectionLabel}" />
+                            <HorizontalStackLayout Spacing="2">
+                                <Label Text="{Binding Temperature}" FontSize="60"
+                                       FontFamily="{OnPlatform Android='sans-serif-light'}" />
+                                <Label Text="°C" FontSize="26" TextColor="{StaticResource TextSecondary}"
+                                       VerticalOptions="End" Margin="0,0,0,10" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="End" Margin="0,0,0,8">
+                            <Label Text="HUMEDAD" Style="{StaticResource SectionLabel}" HorizontalOptions="End" />
+                            <Label HorizontalOptions="End" FontSize="26">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="{Binding Humidity}" />
+                                        <Span Text=" %" TextColor="{StaticResource TextSecondary}" />
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+                        </VerticalStackLayout>
+                    </Grid>
+                    <Label Text="{Binding LastUpdate}" Style="{StaticResource Caption}" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
-            <!-- Humedad -->
-            <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
-                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
-                    <Label Text="HUMEDAD" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5"
-                           HorizontalOptions="Center" />
-                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="2">
-                        <Label Text="{Binding Humidity}"
-                               TextColor="White" FontSize="42" FontAttributes="Bold" />
-                        <Label Text="%" FontSize="22" TextColor="#9999BB"
-                               VerticalOptions="End" Margin="0,0,0,6" />
-                    </HorizontalStackLayout>
+            <!-- Caldera y umbral: lista agrupada -->
+            <Border Style="{StaticResource Card}" Padding="0">
+                <VerticalStackLayout>
+                    <Grid ColumnDefinitions="*,Auto" Padding="16,14">
+                        <Label Text="Caldera" VerticalOptions="Center" />
+                        <Label Grid.Column="1" FontAttributes="Bold" VerticalOptions="Center">
+                            <Label.Triggers>
+                                <DataTrigger TargetType="Label" Binding="{Binding PlugOn}" Value="True">
+                                    <Setter Property="Text"      Value="● Encendida" />
+                                    <Setter Property="TextColor" Value="{StaticResource Success}" />
+                                </DataTrigger>
+                                <DataTrigger TargetType="Label" Binding="{Binding PlugOn}" Value="False">
+                                    <Setter Property="Text"      Value="○ Apagada" />
+                                    <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
+                    </Grid>
+
+                    <BoxView Style="{StaticResource SeparatorLine}" Margin="16,0,0,0" />
+
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6" Padding="16,8,8,8">
+                        <Label Text="Umbral" VerticalOptions="Center" />
+                        <Border Grid.Column="1" Style="{StaticResource Field}" WidthRequest="80">
+                            <Entry Text="{Binding Threshold}" Keyboard="Numeric" HorizontalTextAlignment="End" />
+                        </Border>
+                        <Label Grid.Column="2" Text="°C" VerticalOptions="Center" />
+                        <Button Grid.Column="3" Text="Guardar" Style="{StaticResource LinkButton}"
+                                FontAttributes="Bold" Command="{Binding SaveThresholdCommand}" />
+                    </Grid>
+
+                    <BoxView Style="{StaticResource SeparatorLine}" Margin="16,0,0,0" />
+
+                    <Label Text="{Binding ControlBandText}" Style="{StaticResource Caption}" Padding="16,12" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
-            <!-- Enchufe -->
-            <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
-                <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
-                    <Label Text="ENCHUFE MEROSS" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5"
-                           HorizontalOptions="Center" />
-                    <Label FontSize="22" FontAttributes="Bold" HorizontalOptions="Center">
-                        <Label.Triggers>
-                            <DataTrigger TargetType="Label" Binding="{Binding PlugOn}" Value="True">
-                                <Setter Property="Text"      Value="🟢  ENCENDIDO" />
-                                <Setter Property="TextColor" Value="#4CAF50" />
-                            </DataTrigger>
-                            <DataTrigger TargetType="Label" Binding="{Binding PlugOn}" Value="False">
-                                <Setter Property="Text"      Value="⭕  APAGADO" />
-                                <Setter Property="TextColor" Value="#9999BB" />
-                            </DataTrigger>
-                        </Label.Triggers>
-                    </Label>
-                </VerticalStackLayout>
-            </Frame>
-
-            <!-- Umbral -->
-            <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="UMBRAL DE TEMPERATURA" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5" />
-                    <HorizontalStackLayout Spacing="10">
-                        <Entry Text="{Binding Threshold}" Keyboard="Numeric"
-                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E"
-                               HorizontalOptions="FillAndExpand" />
-                        <Label Text="°C" TextColor="#9999BB" VerticalOptions="Center" FontSize="18" />
-                        <Button Text="💾" Command="{Binding SaveThresholdCommand}"
-                                BackgroundColor="#5A4FD6" TextColor="White"
-                                CornerRadius="10" WidthRequest="50" HeightRequest="44" />
-                    </HorizontalStackLayout>
-                    <Label Text="{Binding ControlBandText}"
-                           TextColor="#9999BB" FontSize="12" />
-                </VerticalStackLayout>
-            </Frame>
-
-            <!-- Botón control manual del enchufe -->
+            <!-- Control manual de la caldera -->
             <Button Command="{Binding TogglePlugManuallyCommand}"
-                Text="{Binding ManualPlugButtonText}"
-                TextColor="White"
-                CornerRadius="12"
-                FontSize="15"
-                FontAttributes="Bold"
-                HeightRequest="52"
-                BackgroundColor="{Binding ManualPlugButtonColor}"
-                IsEnabled="{Binding IsManualPlugButtonEnabled}" />
+                    Text="{Binding ManualPlugButtonText}"
+                    Style="{StaticResource SecondaryButton}"
+                    BackgroundColor="{Binding ManualPlugButtonColor}"
+                    TextColor="{Binding ManualPlugButtonTextColor}"
+                    IsEnabled="{Binding IsManualPlugButtonEnabled}" />
 
-            <!-- Botón arrancar/parar -->
-            <Button Command="{Binding ToggleMonitorCommand}"
-                    TextColor="White" CornerRadius="12" FontSize="16"
-                    FontAttributes="Bold" HeightRequest="52">
+            <!-- Arrancar / parar la monitorización -->
+            <Button Command="{Binding ToggleMonitorCommand}" Style="{StaticResource PrimaryButton}">
                 <Button.Triggers>
                     <DataTrigger TargetType="Button" Binding="{Binding IsRunning}" Value="True">
-                        <Setter Property="Text"            Value="⏹️  Detener monitorización" />
-                        <Setter Property="BackgroundColor" Value="#F44336" />
+                        <Setter Property="Text"            Value="Detener monitorización" />
+                        <Setter Property="BackgroundColor" Value="{StaticResource Danger}" />
                     </DataTrigger>
                     <DataTrigger TargetType="Button" Binding="{Binding IsRunning}" Value="False">
-                        <Setter Property="Text"            Value="▶️  Iniciar monitorización" />
-                        <Setter Property="BackgroundColor" Value="#7C6AF7" />
+                        <Setter Property="Text"            Value="Iniciar monitorización" />
+                        <Setter Property="BackgroundColor" Value="{StaticResource Accent}" />
                     </DataTrigger>
                 </Button.Triggers>
             </Button>
 
-            <!-- Log -->
-            <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
+            <!-- Registro -->
+            <Border Style="{StaticResource Card}">
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="REGISTRO DE EVENTOS" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5" />
-                    <Label Text="{Binding Log}" TextColor="#9999BB" FontSize="12" LineBreakMode="WordWrap" />
+                    <Label Text="REGISTRO" Style="{StaticResource SectionLabel}" />
+                    <Label Text="{Binding Log}" Style="{StaticResource Caption}" FontSize="12"
+                           LineBreakMode="WordWrap" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
+
+            <!-- Versión instalada -->
+            <Label Text="{Binding AppVersionText}" Style="{StaticResource Caption}" FontSize="12"
+                   HorizontalOptions="Center" />
 
         </VerticalStackLayout>
     </ScrollView>

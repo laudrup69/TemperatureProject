@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Colores del tema nativo de Android (cursor y selección de los campos de texto,
+     barra de estado). Sustituyen al morado por defecto de MAUI; mismos tonos que
+     Resources/Styles/Colors.xaml. -->
+<resources>
+    <color name="colorPrimary">#FF6B2C</color>
+    <color name="colorPrimaryDark">#F2F2F7</color>
+    <color name="colorAccent">#FF6B2C</color>
+</resources>

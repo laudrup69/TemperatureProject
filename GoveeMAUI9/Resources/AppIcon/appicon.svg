@@ -1,6 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" rx="20" fill="#1E1E2E"/>
-  <circle cx="50" cy="38" r="10" fill="#7C6AF7"/>
-  <rect x="46" y="38" width="8" height="28" rx="4" fill="#7C6AF7"/>
-  <circle cx="50" cy="70" r="14" fill="#7C6AF7"/>
+  <!-- Fondo del icono: degradado naranja. Sin esquinas: cada lanzador de Android
+       aplica su propia forma (círculo, cuadrado redondeado...). -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFA24C"/>
+      <stop offset="1" stop-color="#FF5F2E"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" fill="url(#bg)"/>
 </svg>

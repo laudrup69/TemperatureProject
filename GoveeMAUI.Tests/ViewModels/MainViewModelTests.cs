@@ -81,6 +81,13 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public void Constructor_ShouldShowAppVersion()
+    {
+        _sut.AppVersionText.Should().StartWith("Versión ");
+        _sut.Log.Should().Contain(_sut.AppVersionText);
+    }
+
+    [Fact]
     public void StoppedByExternalChange_ShouldSwitchToManualMode()
     {
         // Arrange
@@ -174,7 +181,16 @@ public class MainViewModelTests
         _sut.CurrentMode = OperationMode.Manual;
 
         // Act & Assert
-        _sut.ManualPlugButtonText.Should().Contain("🔌");
+        _sut.ManualPlugButtonText.Should().Be("Encender caldera manualmente");
+    }
+
+    [Fact]
+    public void ManualPlugButton_WhenPlugTurnsOn_ShouldOfferTurningOff()
+    {
+        _sut.PlugOn = true;
+
+        _sut.ManualPlugButtonText.Should().Be("Apagar caldera manualmente");
+        _sut.ManualPlugButtonTextColor.Should().Be("#FF3B30");
     }
 
     [Fact]

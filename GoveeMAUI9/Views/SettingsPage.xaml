@@ -4,109 +4,117 @@
              xmlns:vm="clr-namespace:GoveeMAUI.ViewModels"
              x:Class="GoveeMAUI.Views.SettingsPage"
              x:DataType="vm:SettingsViewModel"
-             Title="⚙️ Ajustes"
-             BackgroundColor="#1E1E2E">
+             Title="Ajustes">
+
+    <ContentPage.Resources>
+        <!-- Etiqueta de cada campo y texto de ayuda bajo él -->
+        <Style x:Key="FieldLabel" TargetType="Label" BasedOn="{StaticResource Caption}">
+            <Setter Property="Margin" Value="4,4,0,0" />
+        </Style>
+    </ContentPage.Resources>
 
     <Grid RowDefinitions="*,Auto">
 
         <!-- Contenido con scroll -->
-        <ScrollView Grid.Row="0" VerticalScrollBarVisibility="Always">
-            <VerticalStackLayout Padding="16,16,16,8" Spacing="14">
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="16,8,16,16" Spacing="8">
 
                 <!-- Govee -->
-                <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="🌡️  GOVEE" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5" />
+                <Label Text="SENSOR GOVEE" Style="{StaticResource SectionLabel}" Margin="16,12,0,0" />
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="API Key" Style="{StaticResource FieldLabel}" />
+                        <Border Style="{StaticResource Field}">
+                            <Entry Text="{Binding GoveeApiKey}" Placeholder="Pega aquí tu API Key de Govee" />
+                        </Border>
 
-                        <Label Text="API Key" TextColor="#9999BB" FontSize="13" />
-                        <Entry Text="{Binding GoveeApiKey}"
-                               Placeholder="Pega aquí tu API Key de Govee"
-                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
-
-                        <Button Text="🔍  Detectar dispositivos automáticamente"
+                        <Button Text="Detectar dispositivos automáticamente"
                                 Command="{Binding DetectGoveeDevicesCommand}"
-                                BackgroundColor="#5A4FD6" TextColor="White"
-                                CornerRadius="12" FontSize="15" FontAttributes="Bold" HeightRequest="52" />
+                                Style="{StaticResource SecondaryButton}" Margin="0,4" />
 
-                        <Label Text="{Binding DeviceList}" TextColor="#F7C26A" FontSize="12" />
+                        <Label Text="{Binding DeviceList}" TextColor="{StaticResource Warning}" FontSize="13" />
 
-                        <Label Text="Device ID (autodetectado)" TextColor="#9999BB" FontSize="13" />
-                        <Entry Text="{Binding GoveeDeviceId}" Placeholder="Se rellena al detectar"
-                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+                        <Label Text="Device ID (autodetectado)" Style="{StaticResource FieldLabel}" />
+                        <Border Style="{StaticResource Field}">
+                            <Entry Text="{Binding GoveeDeviceId}" Placeholder="Se rellena al detectar" />
+                        </Border>
 
-                        <Label Text="Modelo (autodetectado)" TextColor="#9999BB" FontSize="13" />
-                        <Entry Text="{Binding GoveeModel}" Placeholder="Se rellena al detectar"
-                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+                        <Label Text="Modelo (autodetectado)" Style="{StaticResource FieldLabel}" />
+                        <Border Style="{StaticResource Field}">
+                            <Entry Text="{Binding GoveeModel}" Placeholder="Se rellena al detectar" />
+                        </Border>
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
                 <!-- Meross -->
-                <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="🔌  MEROSS" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5" />
+                <Label Text="ENCHUFE MEROSS" Style="{StaticResource SectionLabel}" Margin="16,16,0,0" />
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Email de la cuenta Meross" Style="{StaticResource FieldLabel}" />
+                        <Border Style="{StaticResource Field}">
+                            <Entry Text="{Binding MerossEmail}" Placeholder="usuario@email.com" Keyboard="Email" />
+                        </Border>
 
-                        <Label Text="Email de la cuenta Meross" TextColor="#9999BB" FontSize="13" />
-                        <Entry Text="{Binding MerossEmail}" Placeholder="usuario@email.com"
-                               Keyboard="Email"
-                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+                        <Label Text="Contraseña" Style="{StaticResource FieldLabel}" />
+                        <Border Style="{StaticResource Field}">
+                            <Entry Text="{Binding MerossPassword}" IsPassword="True"
+                                   Placeholder="Contraseña de la app Meross" />
+                        </Border>
 
-                        <Label Text="Contraseña" TextColor="#9999BB" FontSize="13" />
-                        <Entry Text="{Binding MerossPassword}" IsPassword="True"
-                               Placeholder="Contraseña de la app Meross"
-                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+                        <Label Text="Secret de API (opcional)" Style="{StaticResource FieldLabel}" />
+                        <Border Style="{StaticResource Field}">
+                            <Entry Text="{Binding MerossSecret}" Placeholder="Vacío = usa valor por defecto" />
+                        </Border>
 
-                        <Label Text="Secret de API (opcional)" TextColor="#9999BB" FontSize="13" />
-                        <Entry Text="{Binding MerossSecret}"
-                               Placeholder="Vacío = usa valor por defecto"
-                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
-
-                        <Label Text="Nombre del enchufe (opcional)" TextColor="#9999BB" FontSize="13" />
-                        <Entry Text="{Binding MerossDevice}"
-                               Placeholder="Vacío = usa el primer enchufe de la cuenta"
-                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+                        <Label Text="Nombre del enchufe (opcional)" Style="{StaticResource FieldLabel}" />
+                        <Border Style="{StaticResource Field}">
+                            <Entry Text="{Binding MerossDevice}"
+                                   Placeholder="Vacío = usa el primer enchufe de la cuenta" />
+                        </Border>
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
                 <!-- Parámetros -->
-                <Frame BackgroundColor="#252538" CornerRadius="16" Padding="20" HasShadow="False" BorderColor="Transparent">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="⚙️  PARÁMETROS" TextColor="#9999BB" FontSize="13" CharacterSpacing="1.5" />
+                <Label Text="CONTROL" Style="{StaticResource SectionLabel}" Margin="16,16,0,0" />
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Umbral de temperatura (°C)" Style="{StaticResource FieldLabel}" />
+                        <Border Style="{StaticResource Field}">
+                            <Entry Text="{Binding Threshold}" Keyboard="Numeric" />
+                        </Border>
 
-                        <Label Text="Umbral de temperatura (°C)" TextColor="#9999BB" FontSize="13" />
-                        <Entry Text="{Binding Threshold}" Keyboard="Numeric"
-                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
-
-                        <Label Text="Margen para apagar (°C sobre el umbral)" TextColor="#9999BB" FontSize="13" />
-                        <Entry Text="{Binding HysteresisMargin}" Keyboard="Numeric"
-                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+                        <Label Text="Margen para apagar (°C sobre el umbral)" Style="{StaticResource FieldLabel}" />
+                        <Border Style="{StaticResource Field}">
+                            <Entry Text="{Binding HysteresisMargin}" Keyboard="Numeric" />
+                        </Border>
                         <Label Text="Con umbral 19 y margen 0,5, se enciende por debajo de 19 °C y se apaga al llegar a 19,5 °C. Un margen pequeño hace que el enchufe cambie más a menudo."
-                               TextColor="#9999BB" FontSize="12" />
+                               Style="{StaticResource Caption}" FontSize="12" Margin="4,0" />
 
-                        <Label Text="Apagado de seguridad (minutos sin lecturas)" TextColor="#9999BB" FontSize="13" />
-                        <Entry Text="{Binding FailsafeMinutes}" Keyboard="Numeric"
-                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+                        <Label Text="Apagado de seguridad (minutos sin lecturas)" Style="{StaticResource FieldLabel}" />
+                        <Border Style="{StaticResource Field}">
+                            <Entry Text="{Binding FailsafeMinutes}" Keyboard="Numeric" />
+                        </Border>
                         <Label Text="Si el sensor deja de dar lecturas válidas durante este tiempo, se apaga el enchufe hasta que vuelvan. 0 = desactivado."
-                               TextColor="#9999BB" FontSize="12" />
+                               Style="{StaticResource Caption}" FontSize="12" Margin="4,0" />
 
-                        <Label Text="Intervalo de comprobación (segundos)" TextColor="#9999BB" FontSize="13" />
-                        <Entry Text="{Binding IntervalSeconds}" Keyboard="Numeric"
-                               TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
+                        <Label Text="Intervalo de comprobación (segundos)" Style="{StaticResource FieldLabel}" />
+                        <Border Style="{StaticResource Field}">
+                            <Entry Text="{Binding IntervalSeconds}" Keyboard="Numeric" />
+                        </Border>
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
-                <Label Text="{Binding StatusMessage}"
-                       TextColor="#F7C26A" HorizontalOptions="Center" FontSize="14" />
+                <Label Text="{Binding StatusMessage}" TextColor="{StaticResource Warning}"
+                       HorizontalOptions="Center" FontSize="14" Margin="0,8,0,0" />
 
             </VerticalStackLayout>
         </ScrollView>
 
         <!-- Botón guardar fijo abajo -->
-        <Button Grid.Row="1"
-                Text="💾  Guardar ajustes"
-                Command="{Binding SaveCommand}"
-                BackgroundColor="#7C6AF7" TextColor="White"
-                CornerRadius="0" FontSize="16" FontAttributes="Bold"
-                HeightRequest="56" Margin="0" />
+        <Border Grid.Row="1" BackgroundColor="{StaticResource PageBackground}" StrokeThickness="0" Padding="16,8,16,16">
+            <Button Text="Guardar ajustes" Command="{Binding SaveCommand}"
+                    Style="{StaticResource PrimaryButton}" />
+        </Border>
 
     </Grid>
 
