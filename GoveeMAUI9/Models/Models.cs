@@ -17,6 +17,7 @@ public static class SettingsKeys
     public const string Threshold = "threshold";
     public const string Interval = "interval_seconds";
     public const string HysteresisMargin = "hysteresis_margin";
+    public const string FailsafeMinutes = "failsafe_minutes";
     // 1 = el usuario dejó la monitorización activada; se restaura al reabrir la app,
     // si Android cierra el proceso o al reiniciar el móvil.
     public const string MonitoringEnabled = "monitoring_enabled";

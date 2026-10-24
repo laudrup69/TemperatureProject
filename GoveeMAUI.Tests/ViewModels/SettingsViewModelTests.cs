@@ -280,4 +280,31 @@ public class SettingsViewModelTests
     {
         _sut.HysteresisMargin.Should().Be(MonitorService.DefaultHysteresisMargin);
     }
+
+    [Fact]
+    public void Save_ShouldPersistFailsafeMinutes()
+    {
+        _sut.FailsafeMinutes = 45;
+
+        _sut.SaveCommand.Execute(null);
+
+        _preferences.Get(SettingsKeys.FailsafeMinutes, -1).Should().Be(45);
+    }
+
+    [Fact]
+    public void Save_NegativeFailsafeMinutes_ShouldBeClampedToZero()
+    {
+        _sut.FailsafeMinutes = -5;
+
+        _sut.SaveCommand.Execute(null);
+
+        _sut.FailsafeMinutes.Should().Be(0);
+        _preferences.Get(SettingsKeys.FailsafeMinutes, -1).Should().Be(0);
+    }
+
+    [Fact]
+    public void Constructor_WithoutSavedFailsafe_ShouldUse30Minutes()
+    {
+        _sut.FailsafeMinutes.Should().Be(30);
+    }
 }

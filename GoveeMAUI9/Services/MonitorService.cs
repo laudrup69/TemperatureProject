@@ -8,9 +8,12 @@ public class MonitorService : IMonitorService
     private readonly IMerossService _meross;
     private readonly IPreferencesService _preferences;
     private readonly IKeepAliveService _keepAlive;
+    private readonly TimeProvider _time;
 
     /// <summary>Margen por defecto sobre el umbral a partir del cual se apaga.</summary>
     public const double DefaultHysteresisMargin = 0.5;
+    /// <summary>Minutos sin lecturas válidas tras los que se apaga el enchufe (0 = nunca).</summary>
+    public const int DefaultFailsafeMinutes = 30;
 
     private CancellationTokenSource? _cts;
     // Estado real del enchufe tal como lo conocemos: null = desconocido (al arrancar
@@ -19,8 +22,12 @@ public class MonitorService : IMonitorService
     private bool? _plugOn;
     private int _consecutiveErrors = 0;
     // A partir de cuántos errores seguidos se avisa. No se detiene: con la app cerrada
-    // nadie podría volver a arrancarla, y un corte de WiFi dejaría el enchufe como esté.
+    // nadie podría volver a arrancarla. Si los errores duran, actúa el apagado de seguridad.
     private const int ErrorsBeforeWarning = 5;
+    // Última lectura válida con el sensor online: lo único que permite controlar.
+    private DateTimeOffset _lastValidReading;
+    // Apagado de seguridad activo: sin lecturas válidas durante demasiado tiempo.
+    private bool _failsafeActive;
     // 1 mientras StartAsync está en curso: la UI y el servicio de Android pueden
     // pedir el arranque a la vez, y sin esto habría dos bucles.
     private int _starting;
@@ -35,12 +42,13 @@ public class MonitorService : IMonitorService
     public event Action<string>? OnError;
 
     public MonitorService(IGoveeService govee, IMerossService meross, IPreferencesService preferences,
-        IKeepAliveService? keepAlive = null)
+        IKeepAliveService? keepAlive = null, TimeProvider? time = null)
     {
         _govee = govee;
         _meross = meross;
         _preferences = preferences;
         _keepAlive = keepAlive ?? new NoOpKeepAliveService();
+        _time = time ?? TimeProvider.System;
 
         // Redirigir logs internos de Meross a la UI
         _meross.OnLog += msg => OnLogMessage?.Invoke($"[Meross] {msg}");
@@ -89,6 +97,10 @@ public class MonitorService : IMonitorService
             _cts = new CancellationTokenSource();
             IsRunning = true;
             _consecutiveErrors = 0;
+            // El plazo del apagado de seguridad cuenta desde el arranque: si nunca llega
+            // una lectura (p. ej. sin red tras reiniciar), también se apaga.
+            _lastValidReading = _time.GetUtcNow();
+            _failsafeActive = false;
 
             System.Diagnostics.Debug.WriteLine("[MonitorService] ▶️ RunLoopAsync iniciado");
             _ = RunLoopAsync(_cts.Token);
@@ -182,6 +194,7 @@ public class MonitorService : IMonitorService
             {
                 OnLogMessage?.Invoke($"❌ Error buscando sensor Govee: {ex.Message}. Reintento en {intervalSecs}s.");
                 System.Diagnostics.Debug.WriteLine($"[MonitorService] ❌ Error detectando sensor: {ex.Message}");
+                await CheckFailsafeAsync();
                 if (!await DelayAsync(intervalSecs, token))
                     break;
             }
@@ -206,6 +219,8 @@ public class MonitorService : IMonitorService
             {
                 System.Diagnostics.Debug.WriteLine($"[MonitorService] ⚠️ Error en LeerYControlarAsync: {ex.Message}");
             }
+
+            await CheckFailsafeAsync();
 
             if (!await DelayAsync(intervalSecs, token))
                 break;
@@ -254,6 +269,32 @@ public class MonitorService : IMonitorService
         OnError?.Invoke(message);
     }
 
+    /// <summary>
+    /// Apagado de seguridad: sin lecturas válidas durante el plazo configurado, el
+    /// enchufe se apaga en vez de quedarse encendido a ciegas. Se reintenta en cada
+    /// intervalo hasta que el enchufe lo confirme; con la primera lectura válida se
+    /// vuelve al control normal (ver LeerYControlarAsync).
+    /// </summary>
+    private async Task CheckFailsafeAsync()
+    {
+        var minutes = _preferences.Get(SettingsKeys.FailsafeMinutes, DefaultFailsafeMinutes);
+        if (minutes <= 0)
+            return;
+
+        var elapsed = _time.GetUtcNow() - _lastValidReading;
+        if (elapsed < TimeSpan.FromMinutes(minutes))
+            return;
+
+        if (!_failsafeActive)
+        {
+            _failsafeActive = true;
+            OnLogMessage?.Invoke($"🛑 Apagado de seguridad: {elapsed.TotalMinutes:F0} min sin lecturas válidas del sensor. Se apaga el enchufe hasta que vuelvan.");
+        }
+
+        if (_plugOn != false)
+            await ExecutePlugChangeAsync(false);
+    }
+
     private async Task LeerYControlarAsync(string deviceId, string model)
     {
         try
@@ -280,6 +321,13 @@ public class MonitorService : IMonitorService
             {
                 OnLogMessage?.Invoke("⚠️ Sensor offline.");
                 return;
+            }
+
+            _lastValidReading = _time.GetUtcNow();
+            if (_failsafeActive)
+            {
+                _failsafeActive = false;
+                OnLogMessage?.Invoke("✅ Lecturas recuperadas: se retoma el control por temperatura.");
             }
 
             OnLogMessage?.Invoke($"📊 Temp: {reading.Temperature:F1}°C  Hum: {reading.Humidity:F1}%  Enciende < {threshold:F1}°C · Apaga ≥ {threshold + margin:F1}°C");

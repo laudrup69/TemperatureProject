@@ -19,6 +19,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _merossDevice    = "";
     [ObservableProperty] private double _threshold       = 18.0;
     [ObservableProperty] private double _hysteresisMargin = MonitorService.DefaultHysteresisMargin;
+    [ObservableProperty] private int    _failsafeMinutes = MonitorService.DefaultFailsafeMinutes;
     [ObservableProperty] private int    _intervalSeconds = 60;
     [ObservableProperty] private string _statusMessage   = "";
     [ObservableProperty] private string _deviceList      = "";
@@ -42,6 +43,7 @@ public partial class SettingsViewModel : ObservableObject
         Threshold       = _preferences.Get(SettingsKeys.Threshold,      18.0);
         IntervalSeconds = _preferences.Get(SettingsKeys.Interval,       60);
         HysteresisMargin = _preferences.Get(SettingsKeys.HysteresisMargin, MonitorService.DefaultHysteresisMargin);
+        FailsafeMinutes = _preferences.Get(SettingsKeys.FailsafeMinutes, MonitorService.DefaultFailsafeMinutes);
     }
 
     [RelayCommand]
@@ -59,6 +61,8 @@ public partial class SettingsViewModel : ObservableObject
         // Un margen negativo solaparía las condiciones de encender y apagar
         HysteresisMargin = Math.Max(0, HysteresisMargin);
         _preferences.Set(SettingsKeys.HysteresisMargin, HysteresisMargin);
+        FailsafeMinutes = Math.Max(0, FailsafeMinutes);
+        _preferences.Set(SettingsKeys.FailsafeMinutes, FailsafeMinutes);
         StatusMessage = "Ajustes guardados correctamente.";
     }
 

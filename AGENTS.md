@@ -37,7 +37,7 @@ public class MainViewModel(MonitorService monitor) { }
 
 **Flujo monitoreo**: `MonitorService.StartAsync()` → lee Govee cada intervalo → aplica histéresis → controla Meross (HTTP local o MQTT, con ACK)
 
-**Monitorización en segundo plano**: la monitorización no depende de la UI. `StartAsync()` guarda `SettingsKeys.MonitoringEnabled = 1` y arranca `IKeepAliveService`; `Stop()` lo pone a 0. En Android, `MonitorForegroundService` (START_STICKY) y `BootReceiver` la restauran si el sistema mata el proceso, al reiniciar o al actualizar la app; `MainViewModel` refleja el estado al abrirse. Los errores de red no detienen el bucle (reintenta cada intervalo); sólo se para si Govee no tiene ningún sensor.
+**Monitorización en segundo plano**: la monitorización no depende de la UI. `StartAsync()` guarda `SettingsKeys.MonitoringEnabled = 1` y arranca `IKeepAliveService`; `Stop()` lo pone a 0. En Android, `MonitorForegroundService` (START_STICKY) y `BootReceiver` la restauran si el sistema mata el proceso, al reiniciar o al actualizar la app; `MainViewModel` refleja el estado al abrirse. Los errores de red no detienen el bucle (reintenta cada intervalo); sólo se para si Govee no tiene ningún sensor. **Apagado de seguridad**: sin lecturas válidas (sensor online) durante `SettingsKeys.FailsafeMinutes` (por defecto 30, 0 = desactivado) se apaga el enchufe hasta que vuelvan; el plazo cuenta desde el arranque. El enchufe controla una caldera.
 
 ## Convenciones de Código
 
