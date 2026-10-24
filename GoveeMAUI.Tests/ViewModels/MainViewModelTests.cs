@@ -227,30 +227,55 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public async Task StartingMonitoring_ShouldStartKeepAlive_AndStoppingShouldStopIt()
+    public async Task StartingMonitoring_ShouldRequestBackgroundExemption()
     {
         var keepAlive = new Mock<IKeepAliveService>();
         var vm = new MainViewModel(_monitorMock.Object, _preferences, keepAlive.Object);
         _preferences.Set(SettingsKeys.GoveeApiKey, "test-key");
 
         await vm.ToggleMonitorCommand.ExecuteAsync(null);
-        keepAlive.Verify(k => k.Start(), Times.Once);
-        keepAlive.Verify(k => k.Stop(), Times.Never);
 
-        await vm.ToggleMonitorCommand.ExecuteAsync(null);
-        keepAlive.Verify(k => k.Stop(), Times.Once);
+        keepAlive.Verify(k => k.RequestBackgroundExemption(), Times.Once);
     }
 
     [Fact]
-    public async Task ManualControlWhileMonitoring_ShouldStopKeepAlive()
+    public void Constructor_WhenMonitoringWasLeftEnabled_ShouldResumeIt()
     {
-        var keepAlive = new Mock<IKeepAliveService>();
-        var vm = new MainViewModel(_monitorMock.Object, _preferences, keepAlive.Object);
-        _preferences.Set(SettingsKeys.GoveeApiKey, "test-key");
-        await vm.ToggleMonitorCommand.ExecuteAsync(null);
+        // Reabrir la app tras cerrarla (o tras un reinicio) con la monitorización activada
+        _preferences.Set(SettingsKeys.MonitoringEnabled, 1);
 
-        await vm.TogglePlugManuallyCommand.ExecuteAsync(null);
+        var vm = new MainViewModel(_monitorMock.Object, _preferences);
 
-        keepAlive.Verify(k => k.Stop(), Times.Once);
+        vm.CurrentMode.Should().Be(OperationMode.Monitoring);
+        vm.IsRunning.Should().BeTrue();
+        _monitorMock.Verify(m => m.StartAsync(), Times.Once);
+    }
+
+    [Fact]
+    public void Constructor_WhenMonitorAlreadyRunning_ShouldShowItsStateWithoutRestarting()
+    {
+        // La app se cerró desde recientes pero el proceso siguió vivo monitorizando
+        _monitorMock.Setup(m => m.IsRunning).Returns(true);
+        _monitorMock.Setup(m => m.PlugState).Returns(true);
+        _monitorMock.Setup(m => m.LastReading)
+            .Returns(new SensorReading { Temperature = 18.4, Humidity = 55, Online = true });
+
+        var vm = new MainViewModel(_monitorMock.Object, _preferences);
+
+        vm.CurrentMode.Should().Be(OperationMode.Monitoring);
+        vm.PlugOn.Should().BeTrue();
+        vm.Temperature.Should().Be($"{18.4:F1}");
+        _monitorMock.Verify(m => m.StartAsync(), Times.Never);
+    }
+
+    [Fact]
+    public void Constructor_WhenMonitoringWasStopped_ShouldStayInManualMode()
+    {
+        _preferences.Set(SettingsKeys.MonitoringEnabled, 0);
+
+        var vm = new MainViewModel(_monitorMock.Object, _preferences);
+
+        vm.CurrentMode.Should().Be(OperationMode.Manual);
+        _monitorMock.Verify(m => m.StartAsync(), Times.Never);
     }
 }

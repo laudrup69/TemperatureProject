@@ -17,6 +17,9 @@ public static class SettingsKeys
     public const string Threshold = "threshold";
     public const string Interval = "interval_seconds";
     public const string HysteresisMargin = "hysteresis_margin";
+    // 1 = el usuario dejó la monitorización activada; se restaura al reabrir la app,
+    // si Android cierra el proceso o al reiniciar el móvil.
+    public const string MonitoringEnabled = "monitoring_enabled";
 }
 
 // ── Abstracción de Preferences para testabilidad ─────────────────────────────
@@ -95,6 +98,10 @@ public interface IMerossService : IAsyncDisposable
 public interface IMonitorService
 {
     bool IsRunning { get; }
+    /// <summary>Último estado conocido del enchufe (null = desconocido).</summary>
+    bool? PlugState { get; }
+    /// <summary>Última lectura válida, para pintar la UI al reabrir la app.</summary>
+    SensorReading? LastReading { get; }
     event Action<SensorReading>? OnReadingUpdated;
     event Action<bool>? OnPlugStateChanged;
     event Action<string>? OnLogMessage;
@@ -112,6 +119,11 @@ public interface IKeepAliveService
 {
     void Start();
     void Stop();
+    /// <summary>
+    /// Pide al usuario que la app quede fuera de la optimización de batería, si no lo
+    /// está ya; sin eso algunos fabricantes la cierran igualmente en segundo plano.
+    /// </summary>
+    void RequestBackgroundExemption();
 }
 
 /// <summary>Para plataformas que no necesitan nada para seguir en marcha.</summary>
@@ -119,6 +131,7 @@ public class NoOpKeepAliveService : IKeepAliveService
 {
     public void Start() { }
     public void Stop() { }
+    public void RequestBackgroundExemption() { }
 }
 
 // ── Estados de operación ──────────────────────────────────────────────────────

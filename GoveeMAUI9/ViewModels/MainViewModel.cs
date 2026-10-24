@@ -50,6 +50,35 @@ public partial class MainViewModel : ObservableObject
         _monitor.OnPlugStateChanged += OnPlugChanged;
         _monitor.OnLogMessage += AddLog;
         _monitor.OnError += OnErrorReceived;
+
+        RestoreMonitoringState();
+    }
+
+    /// <summary>
+    /// La monitorización no depende de esta pantalla: sigue con la app cerrada desde
+    /// recientes, y el servicio de Android la restaura si el sistema cierra el proceso
+    /// o se reinicia el móvil. Al abrir la app se refleja ese estado y, si debía estar
+    /// activa y no lo está (p. ej. en Windows al volver a abrir), se reanuda.
+    /// </summary>
+    private void RestoreMonitoringState()
+    {
+        if (!_monitor.IsRunning && _preferences.Get(SettingsKeys.MonitoringEnabled, 0) != 1)
+            return;
+
+        CurrentMode = OperationMode.Monitoring;
+        IsRunning = true;
+        StatusText = "Monitorizando";
+        StatusColor = Color.FromArgb("#4CAF50");
+        if (_monitor.PlugState is bool plugOn)
+            PlugOn = plugOn;
+        if (_monitor.LastReading is { } reading)
+        {
+            Temperature = $"{reading.Temperature:F1}";
+            Humidity = $"{reading.Humidity:F1}";
+        }
+
+        if (!_monitor.IsRunning)
+            _ = _monitor.StartAsync();
     }
 
     [RelayCommand]
@@ -62,7 +91,6 @@ public partial class MainViewModel : ObservableObject
                 // TRANSICIÓN: Monitoring → Manual
                 AddLog("🔄 Deteniendo monitorización...");
                 _monitor.Stop();
-                _keepAlive.Stop();
                 _wasRunningWhenError = false;
                 _autoRetryTokenSource?.Cancel();
                 IsRunning = false;
@@ -120,7 +148,7 @@ public partial class MainViewModel : ObservableObject
                 _autoRetryCount = 0;
                 _autoRetryTokenSource?.Cancel();
 
-                StartKeepAlive();
+                RequestBackgroundExemption();
                 await _monitor.StartAsync();
 
                 StatusText = "Monitorizando";
@@ -131,10 +159,6 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             AddLog($"❌ {ex.Message}");
-            // Durante un reintento automático el servicio sigue: si se parase, Android
-            // no dejaría volver a arrancarlo con la app en segundo plano.
-            if (!_wasRunningWhenError)
-                _keepAlive.Stop();
             IsRunning = false;
             CurrentMode = OperationMode.Manual;
             StatusText = "Error — revisa los Ajustes";
@@ -152,15 +176,15 @@ public partial class MainViewModel : ObservableObject
         HysteresisMargin = _preferences.Get(SettingsKeys.HysteresisMargin, MonitorService.DefaultHysteresisMargin);
     }
 
-    private void StartKeepAlive()
+    private void RequestBackgroundExemption()
     {
         try
         {
-            _keepAlive.Start();
+            _keepAlive.RequestBackgroundExemption();
         }
         catch (Exception ex)
         {
-            AddLog($"⚠️ No se pudo activar la monitorización en segundo plano: {ex.Message}");
+            AddLog($"⚠️ No se pudo pedir el permiso de batería: {ex.Message}");
         }
     }
 
@@ -185,7 +209,6 @@ public partial class MainViewModel : ObservableObject
             {
                 AddLog("⚠️ Deteniendo monitorización para cambiar a control manual...");
                 _monitor.Stop();
-                _keepAlive.Stop();
                 _wasRunningWhenError = false;
                 _autoRetryTokenSource?.Cancel();
                 IsRunning = false;
@@ -322,7 +345,6 @@ public partial class MainViewModel : ObservableObject
         {
             AddLog($"❌ Reintentos automáticos agotados ({MaxAutoRetries}). Requiere intervención manual.");
             _wasRunningWhenError = false;
-            _keepAlive.Stop();
         }
     }
 

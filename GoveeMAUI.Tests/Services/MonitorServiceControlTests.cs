@@ -191,23 +191,131 @@ public class MonitorServiceControlTests
     }
 
     [Fact]
-    public async Task TooManyErrors_ShouldReallyStopTheLoop()
+    public async Task TooManyErrors_ShouldKeepRetrying()
     {
+        // Con la app cerrada nadie podría volver a arrancarla: un corte de red no
+        // debe detener el control.
         _goveeMock
             .Setup(g => g.GetDeviceStateAsync(It.IsAny<string>(), It.IsAny<string>()))
             .ThrowsAsync(new HttpRequestException("sin red"));
-        var errorRaised = new TaskCompletionSource();
-        _sut.OnError += _ => errorRaised.TrySetResult();
+        var errorRaised = false;
+        _sut.OnError += _ => errorRaised = true;
+        var reads = () => _goveeMock.Invocations.Count(i => i.Method.Name == nameof(IGoveeService.GetDeviceStateAsync));
 
         await _sut.StartAsync();
-        await errorRaised.Task.WaitAsync(TimeSpan.FromSeconds(8));
-        var readsWhenStopped = _goveeMock.Invocations.Count;
+        await WaitUntilAsync(() => reads() >= 7, TimeSpan.FromSeconds(10));
+        _sut.Stop();
 
-        await Task.Delay(1500);
+        reads().Should().BeGreaterThanOrEqualTo(7);
+        errorRaised.Should().BeFalse();
+    }
 
-        _sut.IsRunning.Should().BeFalse();
-        _goveeMock.Invocations.Count.Should().Be(readsWhenStopped,
-            "el bucle debe terminar, no seguir leyendo en paralelo al reintento");
+    [Fact]
+    public async Task RecoversAfterErrors_ShouldControlThePlugAgain()
+    {
+        var calls = 0;
+        _goveeMock
+            .Setup(g => g.GetDeviceStateAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(() => ++calls <= 2
+                ? Task.FromException<SensorReading?>(new HttpRequestException("sin red"))
+                : Task.FromResult<SensorReading?>(new SensorReading { Temperature = 15, Humidity = 50, Online = true }));
+
+        await _sut.StartAsync();
+        await WaitUntilAsync(
+            () => _merossMock.Invocations.Any(i => i.Method.Name == nameof(IMerossService.SetPlugAsync)),
+            TimeSpan.FromSeconds(5));
+        _sut.Stop();
+
+        _merossMock.Verify(m => m.SetPlugAsync(true), Times.Once);
+    }
+
+    [Fact]
+    public async Task DiscoveryNetworkError_ShouldRetryUntilSensorFound()
+    {
+        _preferences.Remove(SettingsKeys.GoveeDeviceId);
+        var calls = 0;
+        _goveeMock
+            .Setup(g => g.GetDevicesAsync())
+            .Returns(() => ++calls == 1
+                ? Task.FromException<List<GoveeDevice>>(new HttpRequestException("sin red tras reiniciar"))
+                : Task.FromResult(new List<GoveeDevice> { new() { Device = "dev-1", Model = "H5184", DeviceName = "Salón" } }));
+        SetTemperature(19.4);
+        var reading = new TaskCompletionSource();
+        _sut.OnReadingUpdated += _ => reading.TrySetResult();
+
+        await _sut.StartAsync();
+        await reading.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        _sut.Stop();
+
+        _preferences.Get(SettingsKeys.GoveeDeviceId, "").Should().Be("dev-1");
+    }
+
+    [Fact]
+    public async Task NoSensorInAccount_ShouldStopAndForgetMonitoring()
+    {
+        var keepAlive = new Mock<IKeepAliveService>();
+        var sut = new MonitorService(_goveeMock.Object, _merossMock.Object, _preferences, keepAlive.Object);
+        _preferences.Remove(SettingsKeys.GoveeDeviceId);
+        _goveeMock.Setup(g => g.GetDevicesAsync()).ReturnsAsync(new List<GoveeDevice>());
+        var error = new TaskCompletionSource();
+        sut.OnError += _ => error.TrySetResult();
+
+        await sut.StartAsync();
+        await error.Task.WaitAsync(TimeSpan.FromSeconds(3));
+
+        sut.IsRunning.Should().BeFalse();
+        _preferences.Get(SettingsKeys.MonitoringEnabled, -1).Should().Be(0);
+        keepAlive.Verify(k => k.Stop(), Times.Once);
+    }
+
+    [Fact]
+    public async Task StartAsync_ShouldRememberMonitoringAndKeepAppAlive()
+    {
+        var keepAlive = new Mock<IKeepAliveService>();
+        var sut = new MonitorService(_goveeMock.Object, _merossMock.Object, _preferences, keepAlive.Object);
+        SetTemperature(19.4);
+
+        await sut.StartAsync();
+
+        _preferences.Get(SettingsKeys.MonitoringEnabled, -1).Should().Be(1);
+        keepAlive.Verify(k => k.Start(), Times.Once);
+
+        sut.Stop();
+
+        _preferences.Get(SettingsKeys.MonitoringEnabled, -1).Should().Be(0);
+        keepAlive.Verify(k => k.Stop(), Times.Once);
+    }
+
+    [Fact]
+    public async Task ConcurrentStarts_ShouldRunASingleLoop()
+    {
+        // La UI y el servicio de Android pueden pedir el arranque a la vez
+        var meross = new TaskCompletionSource();
+        _merossMock.Setup(m => m.InitializeAsync()).Returns(meross.Task);
+        SetTemperature(19.4);
+
+        var first = _sut.StartAsync();
+        var second = _sut.StartAsync();
+        meross.SetResult();
+        await Task.WhenAll(first, second);
+        await Task.Delay(300);
+        _sut.Stop();
+
+        _merossMock.Verify(m => m.InitializeAsync(), Times.Once);
+        _goveeMock.Verify(g => g.GetDeviceStateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task LastReadingAndPlugState_ShouldBeExposedForTheUi()
+    {
+        SetActualPlugState(true);
+        SetTemperature(18.5);
+
+        await StartAndWaitFirstReadingAsync();
+        _sut.Stop();
+
+        _sut.LastReading!.Temperature.Should().Be(18.5);
+        _sut.PlugState.Should().BeTrue();
     }
 
     [Fact]

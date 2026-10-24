@@ -7,6 +7,7 @@ public class MonitorService : IMonitorService
     private readonly IGoveeService _govee;
     private readonly IMerossService _meross;
     private readonly IPreferencesService _preferences;
+    private readonly IKeepAliveService _keepAlive;
 
     /// <summary>Margen por defecto sobre el umbral a partir del cual se apaga.</summary>
     public const double DefaultHysteresisMargin = 1.0;
@@ -17,20 +18,29 @@ public class MonitorService : IMonitorService
     // sea desconocido se envía la orden aunque parezca innecesaria.
     private bool? _plugOn;
     private int _consecutiveErrors = 0;
-    private const int MaxConsecutiveErrors = 5;
+    // A partir de cuántos errores seguidos se avisa. No se detiene: con la app cerrada
+    // nadie podría volver a arrancarla, y un corte de WiFi dejaría el enchufe como esté.
+    private const int ErrorsBeforeWarning = 5;
+    // 1 mientras StartAsync está en curso: la UI y el servicio de Android pueden
+    // pedir el arranque a la vez, y sin esto habría dos bucles.
+    private int _starting;
 
     public bool IsRunning { get; private set; }
+    public bool? PlugState => _plugOn;
+    public SensorReading? LastReading { get; private set; }
 
     public event Action<SensorReading>? OnReadingUpdated;
     public event Action<bool>? OnPlugStateChanged;
     public event Action<string>? OnLogMessage;
     public event Action<string>? OnError;
 
-    public MonitorService(IGoveeService govee, IMerossService meross, IPreferencesService preferences)
+    public MonitorService(IGoveeService govee, IMerossService meross, IPreferencesService preferences,
+        IKeepAliveService? keepAlive = null)
     {
         _govee = govee;
         _meross = meross;
         _preferences = preferences;
+        _keepAlive = keepAlive ?? new NoOpKeepAliveService();
 
         // Redirigir logs internos de Meross a la UI
         _meross.OnLog += msg => OnLogMessage?.Invoke($"[Meross] {msg}");
@@ -38,40 +48,63 @@ public class MonitorService : IMonitorService
 
     public async Task StartAsync()
     {
-        if (IsRunning) 
+        if (IsRunning || Interlocked.CompareExchange(ref _starting, 1, 0) != 0)
         {
             OnLogMessage?.Invoke("⚠️ Monitorización ya está en ejecución.");
             return;
         }
 
-        System.Diagnostics.Debug.WriteLine("[MonitorService] 🟢 StartAsync() llamado");
-        OnLogMessage?.Invoke("🔌 Iniciando monitorización...");
-
-        // Intentamos conectar Meross — si falla continuamos solo con temperatura
-        _plugOn = null;
         try
         {
-            OnLogMessage?.Invoke("Conectando con Meross...");
-            await _meross.InitializeAsync();
-            OnLogMessage?.Invoke("✅ Meross conectado.");
-            _plugOn = await ReadPlugStateAsync();
+            System.Diagnostics.Debug.WriteLine("[MonitorService] 🟢 StartAsync() llamado");
+            OnLogMessage?.Invoke("🔌 Iniciando monitorización...");
+
+            // Se recuerda que el usuario quiere monitorizar: si Android cierra la app o
+            // se reinicia el móvil, el servicio en segundo plano la vuelve a arrancar.
+            _preferences.Set(SettingsKeys.MonitoringEnabled, 1);
+            try
+            {
+                _keepAlive.Start();
+            }
+            catch (Exception ex)
+            {
+                OnLogMessage?.Invoke($"⚠️ No se pudo activar la monitorización en segundo plano: {ex.Message}");
+            }
+
+            // Intentamos conectar Meross — si falla continuamos solo con temperatura
+            _plugOn = null;
+            try
+            {
+                OnLogMessage?.Invoke("Conectando con Meross...");
+                await _meross.InitializeAsync();
+                OnLogMessage?.Invoke("✅ Meross conectado.");
+                _plugOn = await ReadPlugStateAsync();
+            }
+            catch (Exception ex)
+            {
+                OnLogMessage?.Invoke($"⚠️ Meross no disponible: {ex.Message}");
+                OnLogMessage?.Invoke("   Continuando solo con monitorización de temperatura.");
+            }
+
+            _cts = new CancellationTokenSource();
+            IsRunning = true;
+            _consecutiveErrors = 0;
+
+            System.Diagnostics.Debug.WriteLine("[MonitorService] ▶️ RunLoopAsync iniciado");
+            _ = RunLoopAsync(_cts.Token);
         }
-        catch (Exception ex)
+        finally
         {
-            OnLogMessage?.Invoke($"⚠️ Meross no disponible: {ex.Message}");
-            OnLogMessage?.Invoke("   Continuando solo con monitorización de temperatura.");
+            Interlocked.Exchange(ref _starting, 0);
         }
-
-        _cts = new CancellationTokenSource();
-        IsRunning = true;
-        _consecutiveErrors = 0;
-
-        System.Diagnostics.Debug.WriteLine("[MonitorService] ▶️ RunLoopAsync iniciado");
-        _ = RunLoopAsync(_cts.Token);
     }
 
     public void Stop()
     {
+        // Lo pide el usuario: no se debe restaurar al reabrir la app ni al reiniciar.
+        _preferences.Set(SettingsKeys.MonitoringEnabled, 0);
+        _keepAlive.Stop();
+
         if (!IsRunning)
         {
             System.Diagnostics.Debug.WriteLine("[MonitorService] ⚠️ Stop() llamado pero ya estaba detenido");
@@ -104,7 +137,7 @@ public class MonitorService : IMonitorService
         {
             var state = await _meross.GetPlugStateAsync();
             OnLogMessage?.Invoke(state == null
-                ? "⚠️ No se pudo leer el estado del enchufe; se enviará la orden en la primera lectura."
+                ? "⚠️ No se pudo leer el estado del enchufe; se enviará la orden cuando haga falta."
                 : $"🔌 Estado actual del enchufe: {(state.Value ? "ENCENDIDO" : "APAGADO")}");
             if (state != null)
                 OnPlugStateChanged?.Invoke(state.Value);
@@ -120,11 +153,14 @@ public class MonitorService : IMonitorService
     private async Task RunLoopAsync(CancellationToken token)
     {
         System.Diagnostics.Debug.WriteLine("[MonitorService] 📍 RunLoopAsync iniciado");
-        
+
+        var intervalSecs = _preferences.Get(SettingsKeys.Interval, 60);
         var deviceId = _preferences.Get(SettingsKeys.GoveeDeviceId, "");
         var model = _preferences.Get(SettingsKeys.GoveeModel, "");
 
-        if (string.IsNullOrWhiteSpace(deviceId))
+        // Buscar el sensor, reintentando si falla la red (p. ej. justo tras reiniciar
+        // el móvil). Sólo se abandona si Govee responde que no hay ningún sensor.
+        while (string.IsNullOrWhiteSpace(deviceId) && !token.IsCancellationRequested)
         {
             OnLogMessage?.Invoke("Buscando sensor Govee...");
             try
@@ -132,8 +168,7 @@ public class MonitorService : IMonitorService
                 var devices = await _govee.GetDevicesAsync();
                 if (devices.Count == 0)
                 {
-                    OnError?.Invoke("No se encontró ningún sensor Govee. Ve a Ajustes y detecta los dispositivos.");
-                    MarkStoppedIfCurrent(token);
+                    StopAfterFatalError(token, "No se encontró ningún sensor Govee. Ve a Ajustes y detecta los dispositivos.");
                     System.Diagnostics.Debug.WriteLine("[MonitorService] ❌ Ningún sensor Govee encontrado");
                     return;
                 }
@@ -145,60 +180,54 @@ public class MonitorService : IMonitorService
             }
             catch (Exception ex)
             {
-                OnError?.Invoke($"Error buscando sensor Govee: {ex.Message}");
-                MarkStoppedIfCurrent(token);
+                OnLogMessage?.Invoke($"❌ Error buscando sensor Govee: {ex.Message}. Reintento en {intervalSecs}s.");
                 System.Diagnostics.Debug.WriteLine($"[MonitorService] ❌ Error detectando sensor: {ex.Message}");
-                return;
+                if (!await DelayAsync(intervalSecs, token))
+                    break;
             }
         }
-        else
+
+        if (!token.IsCancellationRequested)
         {
-            OnLogMessage?.Invoke($"✅ Usando sensor configurado: {deviceId} ({model})");
+            OnLogMessage?.Invoke($"✅ Usando sensor: {deviceId} ({model})");
+            OnLogMessage?.Invoke("🔄 Iniciando lecturas...");
+            System.Diagnostics.Debug.WriteLine("[MonitorService] ✅ Sensor configurado, entrando en bucle principal");
+            _consecutiveErrors = 0;
         }
 
-        OnLogMessage?.Invoke("🔄 Iniciando lecturas...");
-        System.Diagnostics.Debug.WriteLine("[MonitorService] ✅ Sensor configurado, entrando en bucle principal");
-        _consecutiveErrors = 0;
-
-        var intervalSecs = _preferences.Get(SettingsKeys.Interval, 60);
-
-        // Primera lectura inmediata sin esperar el intervalo
-        try
-        {
-            await LeerYControlarAsync(deviceId, model, token);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[MonitorService] ⚠️ Error en primera lectura: {ex.Message}");
-        }
-
+        // Primera lectura inmediata, después una cada intervalo
         while (!token.IsCancellationRequested)
         {
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(intervalSecs), token);
+                await LeerYControlarAsync(deviceId, model);
             }
-            catch (TaskCanceledException)
+            catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("[MonitorService] 🛑 RunLoopAsync cancelado (pausa de app)");
-                break;
+                System.Diagnostics.Debug.WriteLine($"[MonitorService] ⚠️ Error en LeerYControlarAsync: {ex.Message}");
             }
 
-            if (!token.IsCancellationRequested)
-            {
-                try
-                {
-                    await LeerYControlarAsync(deviceId, model, token);
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MonitorService] ⚠️ Error en LeerYControlarAsync: {ex.Message}");
-                }
-            }
+            if (!await DelayAsync(intervalSecs, token))
+                break;
         }
 
         MarkStoppedIfCurrent(token);
         System.Diagnostics.Debug.WriteLine("[MonitorService] 🏁 RunLoopAsync finalizado");
+    }
+
+    /// <summary>Espera el intervalo; false si se canceló la monitorización.</summary>
+    private static async Task<bool> DelayAsync(int seconds, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(seconds), token);
+            return true;
+        }
+        catch (TaskCanceledException)
+        {
+            System.Diagnostics.Debug.WriteLine("[MonitorService] 🛑 RunLoopAsync cancelado");
+            return false;
+        }
     }
 
     /// <summary>
@@ -212,7 +241,20 @@ public class MonitorService : IMonitorService
             IsRunning = false;
     }
 
-    private async Task LeerYControlarAsync(string deviceId, string model, CancellationToken token)
+    /// <summary>Error de configuración que reintentar no arregla: se para del todo.</summary>
+    private void StopAfterFatalError(CancellationToken token, string message)
+    {
+        if (_cts != null && _cts.Token == token)
+        {
+            _cts.Cancel();
+            IsRunning = false;
+            _preferences.Set(SettingsKeys.MonitoringEnabled, 0);
+            _keepAlive.Stop();
+        }
+        OnError?.Invoke(message);
+    }
+
+    private async Task LeerYControlarAsync(string deviceId, string model)
     {
         try
         {
@@ -231,6 +273,7 @@ public class MonitorService : IMonitorService
                 return;
             }
 
+            LastReading = reading;
             OnReadingUpdated?.Invoke(reading);
 
             if (!reading.Online)
@@ -264,18 +307,9 @@ public class MonitorService : IMonitorService
         {
             _consecutiveErrors++;
             OnLogMessage?.Invoke($"❌ Error leyendo sensor (intento fallido #{_consecutiveErrors}): {ex.Message}");
-            
-            if (_consecutiveErrors >= MaxConsecutiveErrors)
-            {
-                // Cancelar de verdad el bucle: si sólo se marca como parado, sigue
-                // corriendo y el reintento automático arranca otro en paralelo.
-                if (_cts != null && _cts.Token == token)
-                {
-                    _cts.Cancel();
-                    IsRunning = false;
-                }
-                OnError?.Invoke($"Demasiados errores consecutivos ({_consecutiveErrors}). Deteniendo monitorización.");
-            }
+
+            if (_consecutiveErrors == ErrorsBeforeWarning)
+                OnLogMessage?.Invoke($"⚠️ {ErrorsBeforeWarning} errores seguidos. La monitorización sigue reintentando en cada intervalo.");
         }
     }
 

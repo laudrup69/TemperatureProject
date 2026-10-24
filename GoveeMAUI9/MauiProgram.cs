@@ -58,9 +58,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddSingleton<SettingsViewModel>();
 
-        // Páginas
-        builder.Services.AddSingleton<MainPage>();
-        builder.Services.AddSingleton<SettingsPage>();
+        // Páginas: transient porque Android puede recrear la ventana (ver App.CreateWindow)
+        builder.Services.AddTransient<MainPage>();
+        builder.Services.AddTransient<SettingsPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();
