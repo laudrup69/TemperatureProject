@@ -79,7 +79,7 @@
                         <Label Text="Margen para apagar (°C sobre el umbral)" TextColor="#9999BB" FontSize="13" />
                         <Entry Text="{Binding HysteresisMargin}" Keyboard="Numeric"
                                TextColor="White" PlaceholderColor="#9999BB" BackgroundColor="#2A2A3E" />
-                        <Label Text="Con umbral 19 y margen 1, se enciende por debajo de 19 °C y se apaga al llegar a 20 °C. Un margen pequeño hace que el enchufe cambie más a menudo."
+                        <Label Text="Con umbral 19 y margen 0,5, se enciende por debajo de 19 °C y se apaga al llegar a 19,5 °C. Un margen pequeño hace que el enchufe cambie más a menudo."
                                TextColor="#9999BB" FontSize="12" />
 
                         <Label Text="Intervalo de comprobación (segundos)" TextColor="#9999BB" FontSize="13" />

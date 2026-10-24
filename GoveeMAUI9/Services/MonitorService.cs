@@ -10,7 +10,7 @@ public class MonitorService : IMonitorService
     private readonly IKeepAliveService _keepAlive;
 
     /// <summary>Margen por defecto sobre el umbral a partir del cual se apaga.</summary>
-    public const double DefaultHysteresisMargin = 1.0;
+    public const double DefaultHysteresisMargin = 0.5;
 
     private CancellationTokenSource? _cts;
     // Estado real del enchufe tal como lo conocemos: null = desconocido (al arrancar

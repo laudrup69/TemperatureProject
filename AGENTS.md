@@ -66,7 +66,7 @@ public class MainViewModel(MonitorService monitor) { }
 ### Issues Técnicos Frecuentes
 
 1. **Sensor offline**: `ReadSensorReading()` valida rango -40 a 80°C, ignora nulos.
-2. **Histéresis**: ON si T < umbral; OFF si T ≥ (umbral + margen) → previene oscilaciones. Margen configurable en Ajustes (`SettingsKeys.HysteresisMargin`, por defecto 1 °C). El estado del enchufe se lee de Meross al arrancar; si es desconocido o una orden no se confirma, la orden se reenvía en la siguiente lectura.
+2. **Histéresis**: ON si T < umbral; OFF si T ≥ (umbral + margen) → previene oscilaciones. Margen configurable en Ajustes (`SettingsKeys.HysteresisMargin`, por defecto 0,5 °C). El estado del enchufe se lee de Meross al arrancar; si es desconocido o una orden no se confirma, la orden se reenvía en la siguiente lectura.
 3. **MQTT desconexiones**: Reconnect automático cada 3s + resubscripción.
 4. **Control local primero**: Intenta IP interna HTTP → fallback a MQTT cloud.
 5. **Certificados**: TLS ignora errores de certificado (verificar si es intencional).

@@ -56,7 +56,7 @@ public class MonitorServiceControlTests
     public async Task InsideHysteresisBand_ShouldNotTurnOff()
     {
         // Caso reportado: umbral 19, 19.4 °C, enchufe encendido → sigue encendido
-        // porque con margen 1 no se apaga hasta 20.0 °C.
+        // porque con el margen por defecto (0,5) no se apaga hasta 19.5 °C.
         SetActualPlugState(true);
         SetTemperature(19.4);
 
