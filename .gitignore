@@ -71,3 +71,6 @@ test_output.txt
 test_results*.txt
 error_summary.txt
 COMPILATION_ERROR_REPORT.txt
+
+# Capturas de pantalla para compartir con el asistente (locales)
+Capturas/
