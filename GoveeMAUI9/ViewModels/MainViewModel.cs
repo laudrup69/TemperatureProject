@@ -50,6 +50,7 @@ public partial class MainViewModel : ObservableObject
         _monitor.OnPlugStateChanged += OnPlugChanged;
         _monitor.OnLogMessage += AddLog;
         _monitor.OnError += OnErrorReceived;
+        _monitor.OnStoppedByExternalChange += OnStoppedByExternalChange;
 
         RestoreMonitoringState();
     }
@@ -277,6 +278,34 @@ public partial class MainViewModel : ObservableObject
             Log = Log.Length > 3000
                 ? line + "\n" + Log[..2000]
                 : line + "\n" + Log;
+        }
+    }
+
+    /// <summary>
+    /// Alguien cambió el enchufe desde fuera (app de Meross): el monitor ya se ha
+    /// detenido y aquí sólo se refleja, sin reintento automático, que lo desharía.
+    /// </summary>
+    private void OnStoppedByExternalChange(bool plugOn)
+    {
+        void Apply()
+        {
+            _wasRunningWhenError = false;
+            _autoRetryTokenSource?.Cancel();
+            IsRunning = false;
+            CurrentMode = OperationMode.Manual;
+            PlugOn = plugOn;
+            StatusText = "Modo manual (cambio desde Meross)";
+            StatusColor = Colors.Gray;
+        }
+
+        try
+        {
+            MainThread.BeginInvokeOnMainThread(Apply);
+        }
+        catch (COMException)
+        {
+            // En tests o sin UI, no hay DispatcherQueue
+            Apply();
         }
     }
 

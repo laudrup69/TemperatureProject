@@ -85,6 +85,11 @@ public interface IMerossService : IAsyncDisposable
 {
     bool IsConnected { get; }
     event Action<string>? OnLog;
+    /// <summary>
+    /// El enchufe anuncia que ha cambiado (true = encendido), también cuando lo cambia
+    /// otra app como la de Meross. Llega por MQTT, en un hilo de fondo.
+    /// </summary>
+    event Action<bool>? OnPlugStateReported;
     Task InitializeAsync();
     /// <summary>Devuelve true sólo si el enchufe confirmó la orden.</summary>
     Task<bool> SetPlugAsync(bool on);
@@ -107,6 +112,11 @@ public interface IMonitorService
     event Action<bool>? OnPlugStateChanged;
     event Action<string>? OnLogMessage;
     event Action<string>? OnError;
+    /// <summary>
+    /// La monitorización se ha detenido porque alguien cambió el enchufe fuera de esta
+    /// app (p. ej. desde la de Meross); el argumento es el nuevo estado del enchufe.
+    /// </summary>
+    event Action<bool>? OnStoppedByExternalChange;
     Task StartAsync();
     void Stop();
     Task SetPlugManuallyAsync(bool on);

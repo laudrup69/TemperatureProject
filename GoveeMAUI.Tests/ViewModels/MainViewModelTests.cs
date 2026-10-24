@@ -81,6 +81,24 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public void StoppedByExternalChange_ShouldSwitchToManualMode()
+    {
+        // Arrange
+        _sut.CurrentMode = OperationMode.Monitoring;
+        _sut.IsRunning = true;
+        _sut.PlugOn = true;
+
+        // Act: apagado desde la app de Meross
+        _monitorMock.Raise(m => m.OnStoppedByExternalChange += null, false);
+
+        // Assert
+        _sut.CurrentMode.Should().Be(OperationMode.Manual);
+        _sut.IsRunning.Should().BeFalse();
+        _sut.PlugOn.Should().BeFalse();
+        _monitorMock.Verify(m => m.StartAsync(), Times.Never);
+    }
+
+    [Fact]
     public async Task ToggleMonitorAsync_WithoutApiKey_ShouldNotStart()
     {
         // Arrange
