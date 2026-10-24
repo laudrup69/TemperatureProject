@@ -64,3 +64,10 @@ Thumbs.db
 
 # Claude docs (not part of the repo)
 /GoveeMAUI9/.IA-claude/
+# Salidas de compilación y de tests volcadas a fichero
+*.log
+build_output.txt
+test_output.txt
+test_results*.txt
+error_summary.txt
+COMPILATION_ERROR_REPORT.txt
