@@ -52,7 +52,7 @@ public class MonitorServiceTests
         };
 
         // Act
-        _sut.StartAsync().Wait(1000);
+        await _sut.StartAsync();
 
         // Assert - Esperar breve tiempo para que el bucle inicie
         await Task.Delay(100);
@@ -63,7 +63,7 @@ public class MonitorServiceTests
     }
 
     [Fact]
-    public void Stop_ShouldSetIsRunningToFalse()
+    public async Task Stop_ShouldSetIsRunningToFalse()
     {
         // Arrange
         _preferences.Set(SettingsKeys.GoveeDeviceId, "device123");
@@ -81,8 +81,8 @@ public class MonitorServiceTests
             .ThrowsAsync(new InvalidOperationException("Meross no disponible"));
 
         // Act
-        _sut.StartAsync().Wait(1000);
-        Task.Delay(100).Wait();
+        await _sut.StartAsync();
+        await Task.Delay(100);
         _sut.Stop();
 
         // Assert
@@ -124,7 +124,7 @@ public class MonitorServiceTests
         };
 
         // Act
-        _sut.StartAsync().Wait(1000);
+        await _sut.StartAsync();
         await Task.Delay(200);
 
         // Assert
@@ -159,7 +159,7 @@ public class MonitorServiceTests
         };
 
         // Act
-        _sut.StartAsync().Wait(1000);
+        await _sut.StartAsync();
         await Task.Delay(200);
 
         // Assert
@@ -298,7 +298,7 @@ public class MonitorServiceTests
             .Returns(Task.CompletedTask);
 
         // Act
-        _sut.StartAsync().Wait(1000);
+        await _sut.StartAsync();
         await Task.Delay(500);
 
         // Assert
@@ -335,7 +335,7 @@ public class MonitorServiceTests
         };
 
         // Act
-        _sut.StartAsync().Wait(1000);
+        await _sut.StartAsync();
         await Task.Delay(100);
 
         // Assert - El servicio debe continuar funcionando sin Meross
