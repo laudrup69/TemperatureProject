@@ -26,7 +26,8 @@ public static class MockFactory
         // Setup default behaviors
         mock.Setup(m => m.IsConnected).Returns(true);
         mock.Setup(m => m.InitializeAsync()).Returns(Task.CompletedTask);
-        mock.Setup(m => m.SetPlugAsync(It.IsAny<bool>())).Returns(Task.CompletedTask);
+        mock.Setup(m => m.SetPlugAsync(It.IsAny<bool>())).ReturnsAsync(true);
+        mock.Setup(m => m.GetPlugStateAsync()).ReturnsAsync((bool?)null);
         mock.Setup(m => m.DisconnectAsync()).Returns(Task.CompletedTask);
         
         return mock;

@@ -8,8 +8,14 @@ public class MonitorService : IMonitorService
     private readonly IMerossService _meross;
     private readonly IPreferencesService _preferences;
 
+    /// <summary>Margen por defecto sobre el umbral a partir del cual se apaga.</summary>
+    public const double DefaultHysteresisMargin = 1.0;
+
     private CancellationTokenSource? _cts;
-    private bool _plugOn = false;
+    // Estado real del enchufe tal como lo conocemos: null = desconocido (al arrancar
+    // sin poder consultarlo, o tras una orden que el enchufe no confirmó). Mientras
+    // sea desconocido se envía la orden aunque parezca innecesaria.
+    private bool? _plugOn;
     private int _consecutiveErrors = 0;
     private const int MaxConsecutiveErrors = 5;
 
@@ -42,11 +48,13 @@ public class MonitorService : IMonitorService
         OnLogMessage?.Invoke("🔌 Iniciando monitorización...");
 
         // Intentamos conectar Meross — si falla continuamos solo con temperatura
+        _plugOn = null;
         try
         {
             OnLogMessage?.Invoke("Conectando con Meross...");
             await _meross.InitializeAsync();
             OnLogMessage?.Invoke("✅ Meross conectado.");
+            _plugOn = await ReadPlugStateAsync();
         }
         catch (Exception ex)
         {
@@ -82,10 +90,31 @@ public class MonitorService : IMonitorService
     /// </summary>
     public async Task SetPlugManuallyAsync(bool turnOn)
     {
-        await _meross.SetPlugAsync(turnOn);
+        var confirmed = await _meross.SetPlugAsync(turnOn);
         // Sincronizamos el estado interno para que el bucle no lo revierta
-        _plugOn = turnOn;
+        _plugOn = confirmed ? turnOn : null;
+        if (!confirmed)
+            OnLogMessage?.Invoke("⚠️ El enchufe no confirmó la orden manual; puede no haber cambiado.");
         OnPlugStateChanged?.Invoke(turnOn);
+    }
+
+    private async Task<bool?> ReadPlugStateAsync()
+    {
+        try
+        {
+            var state = await _meross.GetPlugStateAsync();
+            OnLogMessage?.Invoke(state == null
+                ? "⚠️ No se pudo leer el estado del enchufe; se enviará la orden en la primera lectura."
+                : $"🔌 Estado actual del enchufe: {(state.Value ? "ENCENDIDO" : "APAGADO")}");
+            if (state != null)
+                OnPlugStateChanged?.Invoke(state.Value);
+            return state;
+        }
+        catch (Exception ex)
+        {
+            OnLogMessage?.Invoke($"⚠️ No se pudo leer el estado del enchufe: {ex.Message}");
+            return null;
+        }
     }
 
     private async Task RunLoopAsync(CancellationToken token)
@@ -104,7 +133,7 @@ public class MonitorService : IMonitorService
                 if (devices.Count == 0)
                 {
                     OnError?.Invoke("No se encontró ningún sensor Govee. Ve a Ajustes y detecta los dispositivos.");
-                    IsRunning = false;
+                    MarkStoppedIfCurrent(token);
                     System.Diagnostics.Debug.WriteLine("[MonitorService] ❌ Ningún sensor Govee encontrado");
                     return;
                 }
@@ -117,7 +146,7 @@ public class MonitorService : IMonitorService
             catch (Exception ex)
             {
                 OnError?.Invoke($"Error buscando sensor Govee: {ex.Message}");
-                IsRunning = false;
+                MarkStoppedIfCurrent(token);
                 System.Diagnostics.Debug.WriteLine($"[MonitorService] ❌ Error detectando sensor: {ex.Message}");
                 return;
             }
@@ -136,7 +165,7 @@ public class MonitorService : IMonitorService
         // Primera lectura inmediata sin esperar el intervalo
         try
         {
-            await LeerYControlarAsync(deviceId, model);
+            await LeerYControlarAsync(deviceId, model, token);
         }
         catch (Exception ex)
         {
@@ -159,7 +188,7 @@ public class MonitorService : IMonitorService
             {
                 try
                 {
-                    await LeerYControlarAsync(deviceId, model);
+                    await LeerYControlarAsync(deviceId, model, token);
                 }
                 catch (Exception ex)
                 {
@@ -168,16 +197,28 @@ public class MonitorService : IMonitorService
             }
         }
 
-        IsRunning = false;
+        MarkStoppedIfCurrent(token);
         System.Diagnostics.Debug.WriteLine("[MonitorService] 🏁 RunLoopAsync finalizado");
     }
 
-    private async Task LeerYControlarAsync(string deviceId, string model)
+    /// <summary>
+    /// Marca el servicio como detenido sólo si <paramref name="token"/> pertenece a la
+    /// ejecución actual: un bucle antiguo que termina tarde no debe dar por parado
+    /// uno nuevo que ya arrancó, o Stop() dejaría de poder cancelarlo.
+    /// </summary>
+    private void MarkStoppedIfCurrent(CancellationToken token)
+    {
+        if (_cts != null && _cts.Token == token)
+            IsRunning = false;
+    }
+
+    private async Task LeerYControlarAsync(string deviceId, string model, CancellationToken token)
     {
         try
         {
             var reading = await _govee.GetDeviceStateAsync(deviceId, model);
             var threshold = _preferences.Get(SettingsKeys.Threshold, 18.0);
+            var margin = Math.Max(0, _preferences.Get(SettingsKeys.HysteresisMargin, DefaultHysteresisMargin));
 
             // Reset contador de errores en lectura exitosa
             _consecutiveErrors = 0;
@@ -198,22 +239,24 @@ public class MonitorService : IMonitorService
                 return;
             }
 
-            OnLogMessage?.Invoke($"📊 Temp: {reading.Temperature:F1}°C  Hum: {reading.Humidity:F1}%  Umbral: {threshold}°C");
+            OnLogMessage?.Invoke($"📊 Temp: {reading.Temperature:F1}°C  Hum: {reading.Humidity:F1}%  Enciende < {threshold:F1}°C · Apaga ≥ {threshold + margin:F1}°C");
 
-            // 2. LÓGICA CON HISTÉRESIS (MARGEN DE 1 GRADO)
-            // Definimos un margen para evitar el "encendido/apagado" constante
-            double margin = 1.0;
+            // 2. LÓGICA CON HISTÉRESIS
+            // Entre umbral y umbral + margen no se toca el enchufe: evita el
+            // "encendido/apagado" constante cuando la temperatura ronda el umbral.
+            // La comparación es con != y no con !: si el estado es desconocido (null)
+            // la orden se envía igualmente.
 
             // ENCENDER: Si la temperatura baja del umbral (ej. < 18.0)
-            if (reading.Temperature < threshold && !_plugOn)
+            if (reading.Temperature < threshold && _plugOn != true)
             {
-                OnLogMessage?.Invoke($"⚠️ Temp baja ({reading.Temperature:F1} < {threshold}) → Encendiendo...");
+                OnLogMessage?.Invoke($"⚠️ Temp baja ({reading.Temperature:F1} < {threshold:F1}) → Encendiendo...");
                 await ExecutePlugChangeAsync(true);
             }
-            // APAGAR: Solo si supera el umbral + margen (ej. > 19.0)
-            else if (reading.Temperature >= (threshold + margin) && _plugOn)
+            // APAGAR: Solo si alcanza el umbral + margen (ej. ≥ 19.0)
+            else if (reading.Temperature >= threshold + margin && _plugOn != false)
             {
-                OnLogMessage?.Invoke($"✅ Temp recuperada ({reading.Temperature:F1} >= {threshold + margin}) → Apagando...");
+                OnLogMessage?.Invoke($"✅ Temp recuperada ({reading.Temperature:F1} ≥ {threshold + margin:F1}) → Apagando...");
                 await ExecutePlugChangeAsync(false);
             }
         }
@@ -224,8 +267,14 @@ public class MonitorService : IMonitorService
             
             if (_consecutiveErrors >= MaxConsecutiveErrors)
             {
+                // Cancelar de verdad el bucle: si sólo se marca como parado, sigue
+                // corriendo y el reintento automático arranca otro en paralelo.
+                if (_cts != null && _cts.Token == token)
+                {
+                    _cts.Cancel();
+                    IsRunning = false;
+                }
                 OnError?.Invoke($"Demasiados errores consecutivos ({_consecutiveErrors}). Deteniendo monitorización.");
-                IsRunning = false;
             }
         }
     }
@@ -235,12 +284,22 @@ public class MonitorService : IMonitorService
     {
         try
         {
-            await _meross.SetPlugAsync(turnOn);
-            _plugOn = turnOn;
+            var confirmed = await _meross.SetPlugAsync(turnOn);
             OnPlugStateChanged?.Invoke(turnOn);
+            if (confirmed)
+            {
+                _plugOn = turnOn;
+            }
+            else
+            {
+                // Sin confirmación no sabemos si cambió: se reenvía en la próxima lectura
+                _plugOn = null;
+                OnLogMessage?.Invoke("⚠️ El enchufe no confirmó la orden; se reenviará en la próxima lectura.");
+            }
         }
         catch (Exception ex)
         {
+            _plugOn = null;
             OnLogMessage?.Invoke($"❌ Error controlando enchufe: {ex.Message}");
         }
     }

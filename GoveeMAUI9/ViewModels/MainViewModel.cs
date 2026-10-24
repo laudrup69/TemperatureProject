@@ -10,6 +10,7 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly IMonitorService _monitor;
     private readonly IPreferencesService _preferences;
+    private readonly IKeepAliveService _keepAlive;
     private CancellationTokenSource? _autoRetryTokenSource;
     private bool _wasRunningWhenError = false;
     private int _autoRetryCount = 0;
@@ -24,7 +25,8 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private Color _statusColor = Colors.Gray;
     [ObservableProperty] private string _log = "";
     [ObservableProperty] private string _lastUpdate = "Sin lecturas aún";
-    [ObservableProperty] private double _threshold;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ControlBandText))] private double _threshold;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ControlBandText))] private double _hysteresisMargin;
     [ObservableProperty] private string _manualPlugButtonText = "🔌 Encender enchufe manualmente";
     [ObservableProperty] private string _manualPlugButtonColor = "#5A4FD6";
     [ObservableProperty] private OperationMode _currentMode = OperationMode.Manual;
@@ -32,11 +34,17 @@ public partial class MainViewModel : ObservableObject
     // NO según el modo: el botón manual debe poder pulsarse también monitorizando.
     [ObservableProperty] private bool _isManualPlugButtonEnabled = true;
 
-    public MainViewModel(IMonitorService monitor, IPreferencesService preferences)
+    /// <summary>Cuándo actúa el monitor: el margen sobre el umbral no es evidente.</summary>
+    public string ControlBandText =>
+        $"Enciende por debajo de {Threshold:F1} °C · Apaga desde {Threshold + HysteresisMargin:F1} °C";
+
+    public MainViewModel(IMonitorService monitor, IPreferencesService preferences, IKeepAliveService? keepAlive = null)
     {
         _monitor = monitor;
         _preferences = preferences;
+        _keepAlive = keepAlive ?? new NoOpKeepAliveService();
         _threshold = _preferences.Get(SettingsKeys.Threshold, 18.0);
+        _hysteresisMargin = _preferences.Get(SettingsKeys.HysteresisMargin, MonitorService.DefaultHysteresisMargin);
 
         _monitor.OnReadingUpdated += OnReading;
         _monitor.OnPlugStateChanged += OnPlugChanged;
@@ -54,6 +62,7 @@ public partial class MainViewModel : ObservableObject
                 // TRANSICIÓN: Monitoring → Manual
                 AddLog("🔄 Deteniendo monitorización...");
                 _monitor.Stop();
+                _keepAlive.Stop();
                 _wasRunningWhenError = false;
                 _autoRetryTokenSource?.Cancel();
                 IsRunning = false;
@@ -111,6 +120,7 @@ public partial class MainViewModel : ObservableObject
                 _autoRetryCount = 0;
                 _autoRetryTokenSource?.Cancel();
 
+                StartKeepAlive();
                 await _monitor.StartAsync();
 
                 StatusText = "Monitorizando";
@@ -121,10 +131,36 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             AddLog($"❌ {ex.Message}");
+            // Durante un reintento automático el servicio sigue: si se parase, Android
+            // no dejaría volver a arrancarlo con la app en segundo plano.
+            if (!_wasRunningWhenError)
+                _keepAlive.Stop();
             IsRunning = false;
             CurrentMode = OperationMode.Manual;
             StatusText = "Error — revisa los Ajustes";
             StatusColor = Colors.Red;
+        }
+    }
+
+    /// <summary>
+    /// Recarga umbral y margen de Preferences: se pueden haber cambiado en Ajustes, y
+    /// sin esto al iniciar la monitorización se volvería a guardar el umbral antiguo.
+    /// </summary>
+    public void ReloadSettings()
+    {
+        Threshold = _preferences.Get(SettingsKeys.Threshold, 18.0);
+        HysteresisMargin = _preferences.Get(SettingsKeys.HysteresisMargin, MonitorService.DefaultHysteresisMargin);
+    }
+
+    private void StartKeepAlive()
+    {
+        try
+        {
+            _keepAlive.Start();
+        }
+        catch (Exception ex)
+        {
+            AddLog($"⚠️ No se pudo activar la monitorización en segundo plano: {ex.Message}");
         }
     }
 
@@ -149,6 +185,7 @@ public partial class MainViewModel : ObservableObject
             {
                 AddLog("⚠️ Deteniendo monitorización para cambiar a control manual...");
                 _monitor.Stop();
+                _keepAlive.Stop();
                 _wasRunningWhenError = false;
                 _autoRetryTokenSource?.Cancel();
                 IsRunning = false;
@@ -285,6 +322,7 @@ public partial class MainViewModel : ObservableObject
         {
             AddLog($"❌ Reintentos automáticos agotados ({MaxAutoRetries}). Requiere intervención manual.");
             _wasRunningWhenError = false;
+            _keepAlive.Stop();
         }
     }
 

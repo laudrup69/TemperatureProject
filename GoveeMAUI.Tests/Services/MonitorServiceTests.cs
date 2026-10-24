@@ -179,7 +179,7 @@ public class MonitorServiceTests
 
         _merossMock
             .Setup(m => m.SetPlugAsync(It.IsAny<bool>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         // Act
         await _sut.SetPlugManuallyAsync(true);
@@ -209,7 +209,7 @@ public class MonitorServiceTests
 
         _merossMock
             .Setup(m => m.SetPlugAsync(It.IsAny<bool>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         // Act
         await _sut.StartAsync();
@@ -255,7 +255,7 @@ public class MonitorServiceTests
 
         _merossMock
             .Setup(m => m.SetPlugAsync(It.IsAny<bool>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         // Act
         await _sut.StartAsync();
@@ -295,7 +295,7 @@ public class MonitorServiceTests
 
         _merossMock
             .Setup(m => m.SetPlugAsync(It.IsAny<bool>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         // Act
         await _sut.StartAsync();

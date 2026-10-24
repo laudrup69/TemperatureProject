@@ -47,6 +47,13 @@ public static class MauiProgram
         builder.Services.AddSingleton<IMerossService, MerossService>();
         builder.Services.AddSingleton<IMonitorService, MonitorService>();
 
+        // Mantener la monitorización con la app en segundo plano (Android: servicio en primer plano)
+#if ANDROID
+        builder.Services.AddSingleton<IKeepAliveService, AndroidKeepAliveService>();
+#else
+        builder.Services.AddSingleton<IKeepAliveService, NoOpKeepAliveService>();
+#endif
+
         // ViewModels
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddSingleton<SettingsViewModel>();

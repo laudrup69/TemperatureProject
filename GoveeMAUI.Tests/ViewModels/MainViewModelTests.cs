@@ -193,4 +193,64 @@ public class MainViewModelTests
         // Si no se reactivara, un único fallo dejaría el botón muerto para siempre.
         _sut.IsManualPlugButtonEnabled.Should().BeTrue();
     }
+
+    [Fact]
+    public void ControlBandText_ShouldShowOnAndOffTemperatures()
+    {
+        _sut.Threshold = 19;
+        _sut.HysteresisMargin = 1;
+
+        _sut.ControlBandText.Should().Be($"Enciende por debajo de {19.0:F1} °C · Apaga desde {20.0:F1} °C");
+    }
+
+    [Fact]
+    public void ControlBandText_ShouldNotifyWhenThresholdChanges()
+    {
+        var changed = new List<string?>();
+        _sut.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        _sut.Threshold = 21;
+
+        changed.Should().Contain(nameof(MainViewModel.ControlBandText));
+    }
+
+    [Fact]
+    public void ReloadSettings_ShouldPickUpValuesSavedInSettings()
+    {
+        _preferences.Set(SettingsKeys.Threshold, 22.5);
+        _preferences.Set(SettingsKeys.HysteresisMargin, 0.5);
+
+        _sut.ReloadSettings();
+
+        _sut.Threshold.Should().Be(22.5);
+        _sut.HysteresisMargin.Should().Be(0.5);
+    }
+
+    [Fact]
+    public async Task StartingMonitoring_ShouldStartKeepAlive_AndStoppingShouldStopIt()
+    {
+        var keepAlive = new Mock<IKeepAliveService>();
+        var vm = new MainViewModel(_monitorMock.Object, _preferences, keepAlive.Object);
+        _preferences.Set(SettingsKeys.GoveeApiKey, "test-key");
+
+        await vm.ToggleMonitorCommand.ExecuteAsync(null);
+        keepAlive.Verify(k => k.Start(), Times.Once);
+        keepAlive.Verify(k => k.Stop(), Times.Never);
+
+        await vm.ToggleMonitorCommand.ExecuteAsync(null);
+        keepAlive.Verify(k => k.Stop(), Times.Once);
+    }
+
+    [Fact]
+    public async Task ManualControlWhileMonitoring_ShouldStopKeepAlive()
+    {
+        var keepAlive = new Mock<IKeepAliveService>();
+        var vm = new MainViewModel(_monitorMock.Object, _preferences, keepAlive.Object);
+        _preferences.Set(SettingsKeys.GoveeApiKey, "test-key");
+        await vm.ToggleMonitorCommand.ExecuteAsync(null);
+
+        await vm.TogglePlugManuallyCommand.ExecuteAsync(null);
+
+        keepAlive.Verify(k => k.Stop(), Times.Once);
+    }
 }

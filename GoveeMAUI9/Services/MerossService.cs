@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -265,7 +266,11 @@ public class MerossService : IMerossService
         try
         {
             var payload = e.ApplicationMessage.ConvertPayloadToString();
-            Log($"📨 MQTT recibido [{e.ApplicationMessage.Topic}]:\n   {payload}");
+            Log($"📨 MQTT recibido [{e.ApplicationMessage.Topic}]:\n   {Truncate(payload)}");
+
+            var messageId = ParseMessageId(payload);
+            if (messageId != null && _pendingAcks.TryGetValue(messageId, out var ackTcs))
+                ackTcs.TrySetResult(payload);
         }
         catch (Exception ex)
         {
@@ -276,7 +281,15 @@ public class MerossService : IMerossService
 
     // ── Control del enchufe ──────────────────────────────────────────────────
 
-    public async Task SetPlugAsync(bool turnOn)
+    private const string ToggleXNamespace = "Appliance.Control.ToggleX";
+    private const string SystemAllNamespace = "Appliance.System.All";
+    private static readonly TimeSpan MqttAckTimeout = TimeSpan.FromSeconds(8);
+
+    // Órdenes MQTT esperando respuesta, por messageId: el enchufe contesta en el
+    // topic de la app con el mismo messageId que le enviamos.
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<string>> _pendingAcks = new();
+
+    public async Task<bool> SetPlugAsync(bool turnOn)
     {
         Log($"🔌 SetPlugAsync({(turnOn ? "ON" : "OFF")}) iniciado");
 
@@ -284,17 +297,47 @@ public class MerossService : IMerossService
         // que StartAsync() haya inicializado nada. Garantizamos la sesión aquí.
         await EnsureInitializedAsync();
 
+        var ack = await SendCommandAsync("SET", ToggleXNamespace,
+            new { togglex = new { channel = 0, onoff = turnOn ? 1 : 0 } });
+
+        if (ack == null)
+        {
+            Log("⚠️ El enchufe no confirmó la orden.");
+            return false;
+        }
+
+        Log($"✅ Enchufe confirmó {(turnOn ? "ENCENDIDO" : "APAGADO")}.");
+        return true;
+    }
+
+    public async Task<bool?> GetPlugStateAsync()
+    {
+        await EnsureInitializedAsync();
+
+        var ack = await SendCommandAsync("GET", SystemAllNamespace, new { });
+        var state = ack == null ? null : ParseOnOff(ack.Value);
+
+        Log($"🔎 Estado del enchufe: {(state == null ? "desconocido" : state.Value ? "ON" : "OFF")}");
+        return state;
+    }
+
+    /// <summary>
+    /// Envía un mensaje firmado al enchufe y devuelve el payload de su ACK
+    /// (SETACK/GETACK), o null si ninguna vía obtuvo confirmación.
+    /// </summary>
+    private async Task<JsonElement?> SendCommandAsync(string method, string ns, object payload)
+    {
         // Estrategia 1: HTTP local (más fiable si estamos en la misma red)
         if (!string.IsNullOrWhiteSpace(_deviceInnerIp))
         {
-            Log($"🌐 Intentando control HTTP local → {_deviceInnerIp}");
-            var httpOk = await TryLocalHttpAsync(turnOn);
-            if (httpOk)
+            Log($"🌐 Intentando HTTP local → {_deviceInnerIp}");
+            var localAck = await TryLocalHttpAsync(method, ns, payload);
+            if (localAck != null)
             {
-                Log("✅ Control HTTP local exitoso.");
-                return;
+                Log("✅ HTTP local confirmado.");
+                return localAck;
             }
-            Log("⚠️ HTTP local falló. Intentando MQTT cloud...");
+            Log("⚠️ HTTP local sin confirmación. Intentando MQTT cloud...");
         }
         else
         {
@@ -302,43 +345,45 @@ public class MerossService : IMerossService
         }
 
         // Estrategia 2: MQTT cloud
-        await SendMqttCommandAsync(turnOn);
+        return await SendMqttCommandAsync(method, ns, payload);
+    }
+
+    private (string MessageId, string Json) BuildMessage(string method, string ns, object payload, string from)
+    {
+        var msgId = Guid.NewGuid().ToString("N");
+        var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        var envelope = new
+        {
+            header = new
+            {
+                from,
+                messageId = msgId,
+                method,
+                @namespace = ns,
+                payloadVersion = 1,
+                sign = Md5(msgId + _key + ts),
+                timestamp = ts,
+                triggerSrc = "app",
+                uuid = _deviceUUID
+            },
+            payload
+        };
+
+        return (msgId, JsonSerializer.Serialize(envelope));
     }
 
     // ── HTTP Local ────────────────────────────────────────────────────────────
 
-    private async Task<bool> TryLocalHttpAsync(bool turnOn)
+    private async Task<JsonElement?> TryLocalHttpAsync(string method, string ns, object payload)
     {
         // Intentar 2 veces con timeout
         for (int attempt = 0; attempt < 2; attempt++)
         {
             try
             {
-                var msgId = Guid.NewGuid().ToString("N");
-                var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-                var envelope = new
-                {
-                    header = new
-                    {
-                        messageId = msgId,
-                        method = "SET",
-                        from = $"http://{_deviceInnerIp}/config",
-                        @namespace = "Appliance.Control.ToggleX",
-                        payloadVersion = 1,
-                        sign = Md5(msgId + _key + ts),
-                        timestamp = ts,
-                        triggerSrc = "app",
-                        uuid = _deviceUUID
-                    },
-                    payload = new
-                    {
-                        togglex = new { channel = 0, onoff = turnOn ? 1 : 0 }
-                    }
-                };
-
-                var json = JsonSerializer.Serialize(envelope);
                 var url = $"http://{_deviceInnerIp}/config";
+                var (_, json) = BuildMessage(method, ns, payload, url);
                 Log($"   POST {url} (intento {attempt + 1}/2)");
 
                 using var localHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
@@ -346,10 +391,18 @@ public class MerossService : IMerossService
                 var resp = await localHttp.PostAsync(url, content);
                 var respBody = await resp.Content.ReadAsStringAsync();
 
-                Log($"   HTTP local response ({(int)resp.StatusCode}): {respBody}");
+                Log($"   HTTP local response ({(int)resp.StatusCode}): {Truncate(respBody)}");
+
+                // Un 200 no basta: el enchufe responde 200 también cuando rechaza la
+                // orden (p. ej. firma inválida), con method=ERROR en la cabecera.
                 if (resp.IsSuccessStatusCode)
-                    return true;
-                    
+                {
+                    var ack = ParseAck(respBody, method);
+                    if (ack != null)
+                        return ack;
+                    Log("   ⚠️ El enchufe respondió sin ACK.");
+                }
+
                 if (attempt < 1)
                 {
                     Log($"   ⚠️ HTTP local falló, reintentando...");
@@ -363,13 +416,13 @@ public class MerossService : IMerossService
                     await Task.Delay(1000);
             }
         }
-        
-        return false;
+
+        return null;
     }
 
     // ── MQTT Cloud ────────────────────────────────────────────────────────────
 
-    private async Task SendMqttCommandAsync(bool turnOn)
+    private async Task<JsonElement?> SendMqttCommandAsync(string method, string ns, object payload)
     {
         if (_mqttClient == null || !_mqttClient.IsConnected)
         {
@@ -385,34 +438,8 @@ public class MerossService : IMerossService
             }
         }
 
-        var msgId = Guid.NewGuid().ToString("N");
-        var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-        var envelope = new
-        {
-            header = new
-            {
-                from = $"/app/{_userId}-{_appId}/subscribe",
-                messageId = msgId,
-                method = "SET",
-                @namespace = "Appliance.Control.ToggleX",
-                payloadVersion = 1,
-                sign = Md5(msgId + _key + ts),
-                timestamp = ts,
-                triggerSrc = "app",
-                uuid = _deviceUUID
-            },
-            payload = new
-            {
-                togglex = new { channel = 0, onoff = turnOn ? 1 : 0 }
-            }
-        };
-
-        var json = JsonSerializer.Serialize(envelope);
+        var (msgId, json) = BuildMessage(method, ns, payload, $"/app/{_userId}-{_appId}/subscribe");
         var topic = $"/appliance/{_deviceUUID}/subscribe";
-
-        Log($"📤 MQTT → {topic}");
-        Log($"   Comando: {(turnOn ? "ENCENDER" : "APAGAR")}");
 
         var msg = new MqttApplicationMessageBuilder()
             .WithTopic(topic)
@@ -420,12 +447,113 @@ public class MerossService : IMerossService
             .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce)
             .Build();
 
-        var pubResult = await _mqttClient!.PublishAsync(msg);
-        Log($"   ✅ MQTT Publish enviado.");
+        var ackTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pendingAcks[msgId] = ackTcs;
+        try
+        {
+            Log($"📤 MQTT {method} {ns} → {topic}");
+            await _mqttClient!.PublishAsync(msg);
 
-        // Esperar respuesta del dispositivo
-        await Task.Delay(3000);
+            // Que el broker acepte el mensaje no significa que el enchufe lo haya
+            // ejecutado: esperamos su respuesta con nuestro messageId.
+            var finished = await Task.WhenAny(ackTcs.Task, Task.Delay(MqttAckTimeout));
+            if (finished != ackTcs.Task)
+            {
+                Log($"⚠️ El enchufe no respondió por MQTT en {MqttAckTimeout.TotalSeconds:F0}s.");
+                return null;
+            }
+
+            var ack = ParseAck(await ackTcs.Task, method);
+            if (ack == null)
+                Log("⚠️ El enchufe respondió por MQTT sin ACK.");
+            return ack;
+        }
+        finally
+        {
+            _pendingAcks.TryRemove(msgId, out _);
+        }
     }
+
+    // ── Parseo de respuestas ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Devuelve el payload si <paramref name="json"/> es el ACK de <paramref name="method"/>
+    /// (SET → SETACK, GET → GETACK); null si es un ERROR o no se puede interpretar.
+    /// </summary>
+    internal static JsonElement? ParseAck(string json, string method)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object
+                || !root.TryGetProperty("header", out var header)
+                || !header.TryGetProperty("method", out var m)
+                || m.GetString() != method + "ACK")
+                return null;
+
+            return root.TryGetProperty("payload", out var payload)
+                ? payload.Clone()
+                : JsonDocument.Parse("{}").RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Extrae el estado del canal 0 de la respuesta a Appliance.System.All.
+    /// Según el modelo viene en digest.togglex (lista u objeto) o en digest.toggle.
+    /// </summary>
+    internal static bool? ParseOnOff(JsonElement payload)
+    {
+        if (payload.ValueKind != JsonValueKind.Object
+            || !payload.TryGetProperty("all", out var all)
+            || !all.TryGetProperty("digest", out var digest))
+            return null;
+
+        if (digest.TryGetProperty("togglex", out var togglex))
+        {
+            if (togglex.ValueKind != JsonValueKind.Array)
+                return ReadOnOff(togglex);
+
+            foreach (var channel in togglex.EnumerateArray())
+            {
+                if (!channel.TryGetProperty("channel", out var ch) || ch.GetInt32() == 0)
+                    return ReadOnOff(channel);
+            }
+            return null;
+        }
+
+        return digest.TryGetProperty("toggle", out var toggle) ? ReadOnOff(toggle) : null;
+    }
+
+    private static bool? ReadOnOff(JsonElement element)
+        => element.ValueKind == JsonValueKind.Object
+           && element.TryGetProperty("onoff", out var onoff)
+           && onoff.ValueKind == JsonValueKind.Number
+            ? onoff.GetInt32() == 1
+            : null;
+
+    internal static string? ParseMessageId(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.ValueKind == JsonValueKind.Object
+                   && doc.RootElement.TryGetProperty("header", out var header)
+                   && header.TryGetProperty("messageId", out var id)
+                ? id.GetString()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string Truncate(string s) => s.Length > 300 ? s[..300] + "…" : s;
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 

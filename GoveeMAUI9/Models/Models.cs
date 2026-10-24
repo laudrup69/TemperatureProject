@@ -16,6 +16,7 @@ public static class SettingsKeys
     public const string MerossDevice = "meross_device";
     public const string Threshold = "threshold";
     public const string Interval = "interval_seconds";
+    public const string HysteresisMargin = "hysteresis_margin";
 }
 
 // ── Abstracción de Preferences para testabilidad ─────────────────────────────
@@ -81,7 +82,10 @@ public interface IMerossService : IAsyncDisposable
     bool IsConnected { get; }
     event Action<string>? OnLog;
     Task InitializeAsync();
-    Task SetPlugAsync(bool on);
+    /// <summary>Devuelve true sólo si el enchufe confirmó la orden.</summary>
+    Task<bool> SetPlugAsync(bool on);
+    /// <summary>Estado real del enchufe, o null si no se pudo consultar.</summary>
+    Task<bool?> GetPlugStateAsync();
     Task DisconnectAsync();
 }
 
@@ -98,6 +102,23 @@ public interface IMonitorService
     Task StartAsync();
     void Stop();
     Task SetPlugManuallyAsync(bool on);
+}
+
+/// <summary>
+/// Mantiene viva la app mientras se monitoriza (en Android, un servicio en primer
+/// plano); sin él el sistema congela o cierra la app con la pantalla apagada.
+/// </summary>
+public interface IKeepAliveService
+{
+    void Start();
+    void Stop();
+}
+
+/// <summary>Para plataformas que no necesitan nada para seguir en marcha.</summary>
+public class NoOpKeepAliveService : IKeepAliveService
+{
+    public void Start() { }
+    public void Stop() { }
 }
 
 // ── Estados de operación ──────────────────────────────────────────────────────

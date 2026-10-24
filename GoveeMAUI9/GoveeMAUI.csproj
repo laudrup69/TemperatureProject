@@ -80,4 +80,9 @@
 		</MauiXaml>
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- Los tests prueban el parseo de respuestas Meross, que es internal -->
+		<InternalsVisibleTo Include="GoveeMAUI.Tests" />
+	</ItemGroup>
+
 </Project>

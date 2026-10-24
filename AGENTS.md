@@ -64,7 +64,7 @@ public class MainViewModel(MonitorService monitor) { }
 ### Issues Técnicos Frecuentes
 
 1. **Sensor offline**: `ReadSensorReading()` valida rango -40 a 80°C, ignora nulos.
-2. **Histéresis**: ON si T < umbral; OFF si T ≥ (umbral + 1°C) → previene oscilaciones.
+2. **Histéresis**: ON si T < umbral; OFF si T ≥ (umbral + margen) → previene oscilaciones. Margen configurable en Ajustes (`SettingsKeys.HysteresisMargin`, por defecto 1 °C). El estado del enchufe se lee de Meross al arrancar; si es desconocido o una orden no se confirma, la orden se reenvía en la siguiente lectura.
 3. **MQTT desconexiones**: Reconnect automático cada 3s + resubscripción.
 4. **Control local primero**: Intenta IP interna HTTP → fallback a MQTT cloud.
 5. **Certificados**: TLS ignora errores de certificado (verificar si es intencional).
@@ -82,7 +82,7 @@ public class MainViewModel(MonitorService monitor) { }
 | Android | [Platforms/Android/](Platforms/Android/) | INTERNET + ACCESS_NETWORK_STATE en [AndroidManifest.xml](Platforms/Android/AndroidManifest.xml) |
 | Windows | [Platforms/Windows/](Platforms/Windows/) | Package.appxmanifest (NO Store deployment) |
 
-Ambas comparten código — sin conditional compilation activa. Al agregar permisos/funcionalidades, editar ambos manifests.
+Ambas comparten código. Única compilación condicional: el registro de `IKeepAliveService` en MauiProgram.cs (Android usa un servicio en primer plano, `Platforms/Android/MonitorForegroundService.cs`, para seguir monitorizando con la pantalla apagada). Al agregar permisos/funcionalidades, editar ambos manifests.
 
 ## Archivos Clave que Ejemplifican Patrones
 

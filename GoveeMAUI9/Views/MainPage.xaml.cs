@@ -5,7 +5,6 @@ namespace GoveeMAUI.Views;
 public partial class MainPage : ContentPage
 {
     private readonly SettingsPage _settingsPage;
-    private bool _wasMonitoringBeforePause = false;
 
     public MainPage(MainViewModel vm, SettingsPage settingsPage)
     {
@@ -15,59 +14,14 @@ public partial class MainPage : ContentPage
     }
 
     /// <summary>
-    /// Se dispara cuando la página es mostrada o cuando el app vuelve del background.
+    /// Al volver de Ajustes, recoge el umbral y el margen que se hayan cambiado allí.
+    /// La monitorización NO se pausa al ocultar la página: debe seguir controlando
+    /// la temperatura con la app en segundo plano o en Ajustes.
     /// </summary>
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        System.Diagnostics.Debug.WriteLine("[MainPage] 📲 OnAppearing - App regresó al foreground");
-        
-        try
-        {
-            var vm = (MainViewModel?)BindingContext;
-            if (vm != null && _wasMonitoringBeforePause && !vm.IsRunning)
-            {
-                MainThread.BeginInvokeOnMainThread(async () =>
-                {
-                    System.Diagnostics.Debug.WriteLine("[MainPage] ▶️ Reanudando monitorización...");
-                    await vm.ToggleMonitorCommand.ExecuteAsync(null);
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[MainPage] ❌ Error en OnAppearing: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Se dispara cuando la página es ocultada o cuando el app va al background.
-    /// </summary>
-    protected override void OnDisappearing()
-    {
-        base.OnDisappearing();
-        System.Diagnostics.Debug.WriteLine("[MainPage] 📴 OnDisappearing - App entró al background");
-        
-        try
-        {
-            var vm = (MainViewModel?)BindingContext;
-            if (vm != null)
-            {
-                _wasMonitoringBeforePause = vm.IsRunning;
-                if (_wasMonitoringBeforePause)
-                {
-                    System.Diagnostics.Debug.WriteLine("[MainPage] ⏸️ Pausando monitorización...");
-                    MainThread.BeginInvokeOnMainThread(async () =>
-                    {
-                        await vm.ToggleMonitorCommand.ExecuteAsync(null);
-                    });
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[MainPage] ❌ Error en OnDisappearing: {ex.Message}");
-        }
+        ((MainViewModel)BindingContext).ReloadSettings();
     }
 
     private async void OnSettingsClicked(object sender, EventArgs e)
