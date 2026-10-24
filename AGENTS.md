@@ -11,6 +11,10 @@ Un proyecto .NET 9 MAUI multiplataforma (Android + Windows) que monitoriza tempe
 
 **Release Android**: Configuration → Release → genera APK firmado en `bin/Release/net9.0-android/`
 
+**CI/CD** (`.github/workflows/`):
+- `ci.yml`: en cada PR a `main` (y push a `main`) ejecuta los tests y compila Android. Es la puerta de entrada a `main`.
+- `release.yml`: al subir una etiqueta `vX.Y.Z` (`git tag v2.2.0 && git push TemperatureGovee v2.2.0`) compila el APK firmado y crea la release de GitHub con el APK adjunto. No repite los tests. La versión sale de la etiqueta (versionCode = mayor·10000 + menor·100 + parche); la del `.csproj` sólo afecta a compilaciones locales. Secretos necesarios: `GOVEE_KEYSTORE_BASE64`, `GOVEE_SIGNING_ALIAS`, `GOVEE_SIGNING_KEYPASS`, `GOVEE_SIGNING_STOREPASS`.
+
 ⚠️ **Keystore Android**: Requiere `C:\keys\govee.keystore` para builds release. Ver [GoveeMAUI.csproj](GoveeMAUI.csproj) línea donde se configura.
 
 ## Arquitectura & Patrones

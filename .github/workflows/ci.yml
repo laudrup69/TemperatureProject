@@ -1,0 +1,46 @@
+# Comprueba cada PR (y lo que llega a main): tests y que el APK se puede compilar.
+# Es la puerta de entrada a main; la release no repite los tests.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Un push nuevo a la misma PR cancela la ejecución anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    # Windows: los tests compilan para net9.0-windows y el runner trae el SDK de Android.
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Mismo SDK que en local (10.x); compila los targets net9.0 del proyecto.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # El SDK de Android de .NET necesita JDK 17 o superior.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar workload MAUI
+        run: dotnet workload install maui
+
+      - name: Tests
+        run: dotnet test GoveeMAUI.Tests/GoveeMAUI.Tests.csproj
+
+      - name: Compilar Android
+        run: dotnet build GoveeMAUI9/GoveeMAUI.csproj -f net9.0-android
