@@ -31,6 +31,11 @@ public class MonitorService : IMonitorService
     // 1 mientras StartAsync está en curso: la UI y el servicio de Android pueden
     // pedir el arranque a la vez, y sin esto habría dos bucles.
     private int _starting;
+    // Orden que esta app está enviando ahora mismo (NoCommand, 0 = OFF, 1 = ON). El
+    // enchufe anuncia también los cambios que provocamos nosotros, a veces antes de
+    // confirmar la orden: esos avisos no son un cambio manual.
+    private const int NoCommand = -1;
+    private int _commandInFlight = NoCommand;
 
     public bool IsRunning { get; private set; }
     public bool? PlugState => _plugOn;
@@ -40,6 +45,7 @@ public class MonitorService : IMonitorService
     public event Action<bool>? OnPlugStateChanged;
     public event Action<string>? OnLogMessage;
     public event Action<string>? OnError;
+    public event Action<bool>? OnStoppedByExternalChange;
 
     public MonitorService(IGoveeService govee, IMerossService meross, IPreferencesService preferences,
         IKeepAliveService? keepAlive = null, TimeProvider? time = null)
@@ -52,6 +58,7 @@ public class MonitorService : IMonitorService
 
         // Redirigir logs internos de Meross a la UI
         _meross.OnLog += msg => OnLogMessage?.Invoke($"[Meross] {msg}");
+        _meross.OnPlugStateReported += OnPlugStateReported;
     }
 
     public async Task StartAsync()
@@ -135,12 +142,57 @@ public class MonitorService : IMonitorService
     /// </summary>
     public async Task SetPlugManuallyAsync(bool turnOn)
     {
-        var confirmed = await _meross.SetPlugAsync(turnOn);
+        var confirmed = await SendPlugCommandAsync(turnOn);
         // Sincronizamos el estado interno para que el bucle no lo revierta
         _plugOn = confirmed ? turnOn : null;
         if (!confirmed)
             OnLogMessage?.Invoke("⚠️ El enchufe no confirmó la orden manual; puede no haber cambiado.");
         OnPlugStateChanged?.Invoke(turnOn);
+    }
+
+    /// <summary>Envía la orden marcándola como nuestra mientras dura.</summary>
+    private async Task<bool> SendPlugCommandAsync(bool turnOn)
+    {
+        Volatile.Write(ref _commandInFlight, turnOn ? 1 : 0);
+        try
+        {
+            return await _meross.SetPlugAsync(turnOn);
+        }
+        finally
+        {
+            Volatile.Write(ref _commandInFlight, NoCommand);
+        }
+    }
+
+    /// <summary>
+    /// El enchufe avisa de un cambio. Si no lo ha provocado esta app (lo encendieron o
+    /// apagaron desde la app de Meross), quien lo hizo manda: se deja de monitorizar
+    /// para no deshacer su decisión en la siguiente lectura.
+    /// </summary>
+    private void OnPlugStateReported(bool on)
+    {
+        // Eco de una orden nuestra en curso: no es un cambio manual.
+        if (Volatile.Read(ref _commandInFlight) != NoCommand)
+            return;
+
+        var known = _plugOn;
+        _plugOn = on;
+        if (known == on)
+            return;
+
+        OnPlugStateChanged?.Invoke(on);
+
+        // Con estado desconocido (orden sin confirmar) no se puede saber si el cambio
+        // es nuestro: sólo se toma nota.
+        if (known == null || !IsRunning)
+        {
+            OnLogMessage?.Invoke($"🔌 Estado del enchufe actualizado: {(on ? "ENCENDIDO" : "APAGADO")}");
+            return;
+        }
+
+        OnLogMessage?.Invoke($"🖐️ El enchufe se ha {(on ? "encendido" : "apagado")} fuera de esta app (p. ej. desde la de Meross). Se detiene la monitorización.");
+        Stop();
+        OnStoppedByExternalChange?.Invoke(on);
     }
 
     private async Task<bool?> ReadPlugStateAsync()
@@ -364,9 +416,14 @@ public class MonitorService : IMonitorService
     // Método auxiliar para evitar repetir código de error
     private async Task ExecutePlugChangeAsync(bool turnOn)
     {
+        // Una lectura en curso al detenerse (p. ej. por un cambio desde la app de
+        // Meross) no debe tocar ya el enchufe.
+        if (!IsRunning)
+            return;
+
         try
         {
-            var confirmed = await _meross.SetPlugAsync(turnOn);
+            var confirmed = await SendPlugCommandAsync(turnOn);
             OnPlugStateChanged?.Invoke(turnOn);
             if (confirmed)
             {

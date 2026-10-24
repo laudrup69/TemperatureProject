@@ -32,6 +32,7 @@ public class MerossService : IMerossService
 
     public bool IsConnected => _mqttClient?.IsConnected == true;
     public event Action<string>? OnLog;
+    public event Action<bool>? OnPlugStateReported;
 
     public MerossService(IHttpClientFactory httpClientFactory, IPreferencesService preferences)
     {
@@ -254,11 +255,16 @@ public class MerossService : IMerossService
         var appTopic = $"/app/{_userId}-{_appId}/subscribe";
         // Suscribirse también al topic de publicaciones del dispositivo
         var deviceTopic = $"/appliance/{_deviceUUID}/publish";
+        // La nube reenvía aquí los avisos (PUSH) de los dispositivos del usuario, p. ej.
+        // cuando el enchufe se enciende o apaga desde la app de Meross.
+        var userTopic = $"/app/{_userId}/subscribe";
 
         await _mqttClient.SubscribeAsync(appTopic);
         await _mqttClient.SubscribeAsync(deviceTopic);
+        await _mqttClient.SubscribeAsync(userTopic);
         Log($"   Suscrito a: {appTopic}");
         Log($"   Suscrito a: {deviceTopic}");
+        Log($"   Suscrito a: {userTopic}");
     }
 
     private Task OnMqttMessageReceived(MqttApplicationMessageReceivedEventArgs e)
@@ -270,7 +276,14 @@ public class MerossService : IMerossService
 
             var messageId = ParseMessageId(payload);
             if (messageId != null && _pendingAcks.TryGetValue(messageId, out var ackTcs))
+            {
                 ackTcs.TrySetResult(payload);
+            }
+            else if (ParsePush(payload, _deviceUUID) is bool reported)
+            {
+                Log($"📢 El enchufe avisa: {(reported ? "ENCENDIDO" : "APAGADO")}");
+                OnPlugStateReported?.Invoke(reported);
+            }
         }
         catch (Exception ex)
         {
@@ -513,7 +526,50 @@ public class MerossService : IMerossService
             || !all.TryGetProperty("digest", out var digest))
             return null;
 
-        if (digest.TryGetProperty("togglex", out var togglex))
+        return ReadToggle(digest);
+    }
+
+    /// <summary>
+    /// Estado que el enchufe anuncia por su cuenta (PUSH de ToggleX/Toggle) al cambiar,
+    /// también cuando lo cambia la app de Meross. Null si el mensaje es otra cosa o
+    /// viene de otro dispositivo: la nube reenvía los avisos de todos los del usuario.
+    /// </summary>
+    internal static bool? ParsePush(string json, string deviceUuid)
+    {
+        if (string.IsNullOrEmpty(deviceUuid))
+            return null;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object
+                || !root.TryGetProperty("header", out var header)
+                || header.ValueKind != JsonValueKind.Object
+                || GetString(header, "method") != "PUSH"
+                || !root.TryGetProperty("payload", out var payload))
+                return null;
+
+            var fromDevice = GetString(header, "uuid") == deviceUuid
+                             || GetString(header, "from")?.Contains(deviceUuid) == true;
+            return fromDevice ? ReadToggle(payload) : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Estado del canal 0 dentro de un objeto con "togglex" (lista u objeto, según el
+    /// modelo) o "toggle".
+    /// </summary>
+    private static bool? ReadToggle(JsonElement container)
+    {
+        if (container.ValueKind != JsonValueKind.Object)
+            return null;
+
+        if (container.TryGetProperty("togglex", out var togglex))
         {
             if (togglex.ValueKind != JsonValueKind.Array)
                 return ReadOnOff(togglex);
@@ -526,8 +582,13 @@ public class MerossService : IMerossService
             return null;
         }
 
-        return digest.TryGetProperty("toggle", out var toggle) ? ReadOnOff(toggle) : null;
+        return container.TryGetProperty("toggle", out var toggle) ? ReadOnOff(toggle) : null;
     }
+
+    private static string? GetString(JsonElement obj, string name)
+        => obj.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
 
     private static bool? ReadOnOff(JsonElement element)
         => element.ValueKind == JsonValueKind.Object

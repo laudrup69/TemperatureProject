@@ -75,4 +75,38 @@ public class MerossProtocolTests
         MerossService.ParseMessageId("""{"header":{"messageId":"abc123"}}""").Should().Be("abc123");
         MerossService.ParseMessageId("not json").Should().BeNull();
     }
+
+    private const string Uuid = "2106abc0123456789";
+
+    [Theory]
+    [InlineData("""{"header":{"method":"PUSH","namespace":"Appliance.Control.ToggleX","from":"/appliance/2106abc0123456789/publish"},"payload":{"togglex":[{"channel":0,"onoff":0,"lmTime":1700000000}]}}""", false)]
+    [InlineData("""{"header":{"method":"PUSH","namespace":"Appliance.Control.ToggleX","from":"/appliance/2106abc0123456789/publish"},"payload":{"togglex":{"channel":0,"onoff":1}}}""", true)]
+    [InlineData("""{"header":{"method":"PUSH","namespace":"Appliance.Control.Toggle","uuid":"2106abc0123456789"},"payload":{"toggle":{"onoff":1}}}""", true)]
+    public void ParsePush_ToggleFromOurPlug_ShouldReadState(string json, bool expected)
+    {
+        MerossService.ParsePush(json, Uuid).Should().Be(expected);
+    }
+
+    [Theory]
+    // Otro dispositivo de la misma cuenta
+    [InlineData("""{"header":{"method":"PUSH","from":"/appliance/otro-enchufe/publish"},"payload":{"togglex":[{"channel":0,"onoff":0}]}}""")]
+    // Respuesta a una orden, no un aviso
+    [InlineData("""{"header":{"method":"SETACK","from":"/appliance/2106abc0123456789/publish"},"payload":{}}""")]
+    // Aviso de otra cosa (p. ej. consumo)
+    [InlineData("""{"header":{"method":"PUSH","from":"/appliance/2106abc0123456789/publish"},"payload":{"electricity":{"power":1200}}}""")]
+    [InlineData("""{"header":{"method":"PUSH","from":"/appliance/2106abc0123456789/publish"}}""")]
+    [InlineData("not json")]
+    [InlineData("[]")]
+    public void ParsePush_NotAToggleFromOurPlug_ShouldReturnNull(string json)
+    {
+        MerossService.ParsePush(json, Uuid).Should().BeNull();
+    }
+
+    [Fact]
+    public void ParsePush_WithoutResolvedDevice_ShouldReturnNull()
+    {
+        MerossService.ParsePush(
+            """{"header":{"method":"PUSH","from":"/appliance//publish"},"payload":{"togglex":[{"channel":0,"onoff":0}]}}""",
+            "").Should().BeNull();
+    }
 }
